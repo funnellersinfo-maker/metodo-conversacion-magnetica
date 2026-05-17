@@ -1,24 +1,40 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface AudioCallScreenProps {
   onComplete: () => void
 }
 
+// Teleprompter captions synced to audio progress (time → text)
+const CAPTIONS: { start: number; end: number; text: string }[] = [
+  { start: 0, end: 5, text: 'Conectando...' },
+  { start: 5, end: 12, text: '¿Alguna vez sentiste que ella te ignoraba sin razón?' },
+  { start: 12, end: 20, text: 'Lo que no sabes es que su cerebro ya decidió en 7 segundos.' },
+  { start: 20, end: 28, text: 'No es tu físico. No es tu dinero. Es tu PATRÓN de conversación.' },
+  { start: 28, end: 36, text: 'El 99% de los hombres usan el mismo formato aburrido...' },
+  { start: 36, end: 44, text: 'Y son archivados en silencio antes de la primera cita.' },
+  { start: 44, end: 52, text: 'Pero existe un cortocircuito biológico...' },
+  { start: 52, end: 60, text: 'Una forma de hackear su atención de inmediato.' },
+  { start: 60, end: 68, text: 'Y lo que viene después... lo cambiará todo.' },
+]
+
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const bgAudioRef = useRef<HTMLAudioElement | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animFrameRef = useRef<number | null>(null)
   const completedRef = useRef(false)
   const bgStartedRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
+  const [activeCaption, setActiveCaption] = useState('Conectando...')
 
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
     completedRef.current = true
-    // Stop background music
     if (bgAudioRef.current) {
       bgAudioRef.current.pause()
       bgAudioRef.current.currentTime = 0
@@ -30,11 +46,36 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const audio = audioRef.current
     if (!audio) return
 
-    // === Background music — starts at second 40, low volume ===
+    // === Background music at second 40 ===
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
-    bgAudio.volume = 0.18 // Low volume so it doesn't overpower the voice
+    bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
+
+    // === Web Audio API for frequency analysis ===
+    try {
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      const source = audioCtx.createMediaElementSource(audio)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 64
+      source.connect(analyser)
+      analyser.connect(audioCtx.destination)
+      analyserRef.current = analyser
+
+      // Animation loop for frequency data
+      const updateFrequency = () => {
+        if (analyserRef.current && !completedRef.current) {
+          const data = new Uint8Array(analyserRef.current.frequencyBinCount)
+          analyserRef.current.getByteFrequencyData(data)
+          const normalized = Array.from(data).map(v => Math.round((v / 255) * 100))
+          setFrequencyData(normalized)
+        }
+        animFrameRef.current = requestAnimationFrame(updateFrequency)
+      }
+      updateFrequency()
+    } catch {
+      // Web Audio API not available — frequency bars will use fallback animation
+    }
 
     const playAudio = async () => {
       try {
@@ -42,7 +83,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         await audio.play()
         setIsPlaying(true)
       } catch {
-        // Browser may block — will need user interaction
+        // Browser may block
       }
     }
 
@@ -51,6 +92,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handleEnded = () => handleComplete()
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
+
+      // Update caption
+      const caption = CAPTIONS.find(c => audio.currentTime >= c.start && audio.currentTime < c.end)
+      if (caption) setActiveCaption(caption.text)
 
       // Start background music at second 40
       if (!bgStartedRef.current && audio.currentTime >= 40) {
@@ -62,7 +107,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
-    // Keep alive — prevent browser from pausing
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
@@ -72,9 +116,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handlePause = () => {
       if (!completedRef.current) {
         setTimeout(() => {
-          if (!audio.ended && !completedRef.current) {
-            audio.play().catch(() => {})
-          }
+          if (!audio.ended && !completedRef.current) audio.play().catch(() => {})
         }, 100)
       }
     }
@@ -87,23 +129,27 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       audio.removeEventListener('pause', handlePause)
       clearInterval(keepAlive)
       audio.pause()
-      // Stop background music
       bgAudio.pause()
       bgAudio.currentTime = 0
       bgAudioRef.current = null
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
   }, [handleComplete])
 
-  // Format time as M:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Calculate progress percentage
-  const audioDuration = 68.28 // from ffprobe
+  const audioDuration = 68.28
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
+
+  // SVG circular progress — circumference calculation
+  const RING_RADIUS = 52
+  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+  const ringProgress = (progressPercent / 100) * RING_CIRCUMFERENCE
+  const ringDashOffset = RING_CIRCUMFERENCE - ringProgress
 
   return (
     <motion.div
@@ -113,135 +159,292 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Subtle background glow */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(76, 175, 80, 0.04) 0%, transparent 70%), #0a0a0a',
-        }}
-      />
+      {/* Subtle bg glow */}
+      <div className="absolute inset-0" style={{
+        background: 'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(76, 175, 80, 0.04) 0%, transparent 70%), #0a0a0a',
+      }} />
+
+      {/* Scan lines overlay for sci-fi feel */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
+        opacity: 0.5,
+      }} />
 
       {/* Audio element */}
-      <audio ref={audioRef} src="/audio/call-audio.mp3" preload="auto" />
+      <audio ref={audioRef} src="/audio/call-audio.mp3" preload="auto" crossOrigin="anonymous" />
 
-      {/* === HEADER: In call === */}
-      <div className="relative z-10 mt-16 flex flex-col items-center">
-        {/* EN LLAMADA label */}
-        <span
-          style={{
+      {/* === TOP: Profile with circular progress ring === */}
+      <div className="relative z-10 mt-14 flex flex-col items-center">
+        {/* EN LLAMADA */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <span style={{
             fontFamily: "'Cinzel', serif",
             fontSize: 'clamp(0.6rem, 1.8vw, 0.72rem)',
-            fontWeight: 500,
-            color: '#4CAF50',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-          }}
-        >
-          EN LLAMADA
-        </span>
+            fontWeight: 500, color: '#4CAF50',
+            letterSpacing: '0.25em', textTransform: 'uppercase',
+            textShadow: '0 0 12px rgba(76, 175, 80, 0.3)',
+          }}>
+            EN LLAMADA
+          </span>
+        </motion.div>
 
-        {/* Profile photo */}
-        <div className="mt-5">
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              border: '2px solid #4CAF50',
-              overflow: 'hidden',
-              boxShadow: '0 0 20px rgba(76, 175, 80, 0.2)',
-            }}
+        {/* Profile photo with SVG circular progress */}
+        <motion.div
+          className="mt-5 relative flex items-center justify-center"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.6, type: 'spring' }}
+        >
+          {/* SVG ring — rotates -90deg so progress starts from top */}
+          <svg
+            width="124" height="124" viewBox="0 0 124 124"
+            style={{ position: 'absolute', transform: 'rotate(-90deg)' }}
           >
-            <img
-              src="/images/dante-profile.jpg"
-              alt="Dante"
+            {/* Background ring */}
+            <circle
+              cx="62" cy="62" r={RING_RADIUS}
+              fill="none" stroke="rgba(76, 175, 80, 0.1)"
+              strokeWidth="3" strokeLinecap="round"
+            />
+            {/* Progress ring */}
+            <circle
+              cx="62" cy="62" r={RING_RADIUS}
+              fill="none" stroke="#4CAF50"
+              strokeWidth="3" strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringDashOffset}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+                transition: 'stroke-dashoffset 0.3s ease',
+                filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))',
               }}
             />
+            {/* Glow ring */}
+            <circle
+              cx="62" cy="62" r={RING_RADIUS}
+              fill="none" stroke="rgba(76, 175, 80, 0.15)"
+              strokeWidth="8" strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringDashOffset}
+              style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+            />
+          </svg>
+
+          {/* Profile photo */}
+          <div style={{
+            width: '88px', height: '88px', borderRadius: '50%',
+            overflow: 'hidden',
+            boxShadow: '0 0 25px rgba(76, 175, 80, 0.2), 0 0 50px rgba(76, 175, 80, 0.1)',
+          }}>
+            <img src="/images/dante-profile.jpg" alt="Dante"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-        </div>
+        </motion.div>
 
         {/* Name */}
-        <h1
-          style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: 'clamp(1.2rem, 4.5vw, 1.6rem)',
-            fontWeight: 700,
-            color: '#FFFFFF',
-            letterSpacing: '0.15em',
-            marginTop: '0.75rem',
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
         >
-          DANTE
-        </h1>
-
-        {/* Sound wave visualization */}
-        <div className="flex items-center gap-1 mt-4" style={{ height: '24px' }}>
-          {Array.from({ length: 7 }, (_, i) => (
-            <motion.div
-              key={i}
-              style={{
-                width: '3px',
-                borderRadius: '2px',
-                backgroundColor: isPlaying ? '#4CAF50' : 'rgba(76, 175, 80, 0.3)',
-              }}
-              animate={
-                isPlaying
-                  ? { height: [6, 20, 8, 16, 6], opacity: [0.6, 1, 0.7, 1, 0.6] }
-                  : { height: [6], opacity: [0.3] }
-              }
-              transition={{
-                duration: 1 + i * 0.15,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </div>
+          <h1 style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(1.2rem, 4.5vw, 1.5rem)',
+            fontWeight: 700, color: '#FFFFFF',
+            letterSpacing: '0.18em', marginTop: '0.75rem',
+            textShadow: '0 2px 15px rgba(0,0,0,0.8)',
+          }}>
+            DANTE
+          </h1>
+        </motion.div>
       </div>
 
-      {/* === BOTTOM: Audio progress bar === */}
-      <div className="relative z-10 mt-auto w-full px-6 pb-12">
-        {/* Progress bar */}
-        <div className="w-full">
-          {/* Current time only — no total duration shown */}
-          <div className="flex justify-start mb-2">
-            <span
+      {/* === TELEPROMPTER — Matrix green futuristic === */}
+      <motion.div
+        className="relative z-10 mt-6 w-full px-5"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 1, duration: 0.8 }}
+      >
+        <div style={{
+          position: 'relative',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, rgba(0, 20, 0, 0.7), rgba(0, 10, 0, 0.9))',
+          border: '1px solid rgba(76, 175, 80, 0.2)',
+          boxShadow: '0 0 30px rgba(76, 175, 80, 0.08), inset 0 0 30px rgba(0, 20, 0, 0.3)',
+        }}>
+          {/* Rotating corner brackets */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+            {/* Top-left bracket */}
+            <div style={{
+              position: 'absolute', top: '6px', left: '6px',
+              width: '20px', height: '20px',
+              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
+              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
+            }} />
+            {/* Top-right bracket */}
+            <div style={{
+              position: 'absolute', top: '6px', right: '6px',
+              width: '20px', height: '20px',
+              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
+              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
+            }} />
+            {/* Bottom-left bracket */}
+            <div style={{
+              position: 'absolute', bottom: '6px', left: '6px',
+              width: '20px', height: '20px',
+              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
+              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
+            }} />
+            {/* Bottom-right bracket */}
+            <div style={{
+              position: 'absolute', bottom: '6px', right: '6px',
+              width: '20px', height: '20px',
+              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
+              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
+            }} />
+            {/* Rotating scan line */}
+            <motion.div
               style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.65rem, 2vw, 0.8rem)',
-                fontWeight: 600,
-                color: '#4CAF50',
-                letterSpacing: '0.05em',
-                fontVariantNumeric: 'tabular-nums',
+                position: 'absolute', left: 0, right: 0,
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.4), transparent)',
               }}
-            >
+              animate={{ top: ['0%', '100%', '0%'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            />
+          </div>
+
+          {/* Header label */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '8px 14px 4px',
+            borderBottom: '1px solid rgba(76, 175, 80, 0.1)',
+          }}>
+            <motion.div
+              style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4CAF50' }}
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <span style={{
+              fontFamily: "'Courier New', monospace",
+              fontSize: '0.55rem', fontWeight: 700,
+              color: 'rgba(76, 175, 80, 0.6)',
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+            }}>
+              TRANSCRIPCIÓN EN VIVO
+            </span>
+          </div>
+
+          {/* Caption text */}
+          <div style={{ padding: '12px 16px 14px', minHeight: '60px' }}>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={activeCaption}
+                initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                style={{
+                  fontFamily: "'Courier New', monospace",
+                  fontSize: 'clamp(0.72rem, 2.2vw, 0.85rem)',
+                  fontWeight: 400,
+                  color: '#4CAF50',
+                  lineHeight: 1.5,
+                  letterSpacing: '0.03em',
+                  textShadow: '0 0 10px rgba(76, 175, 80, 0.4), 0 0 20px rgba(76, 175, 80, 0.15)',
+                }}
+              >
+                {activeCaption}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
+          {/* Matrix rain effect — tiny falling characters */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.08 }}>
+            {Array.from({ length: 12 }, (_, i) => (
+              <motion.span
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: `${8 + (i * 8) % 90}%`,
+                  fontSize: '0.5rem',
+                  color: '#4CAF50',
+                  fontFamily: 'monospace',
+                }}
+                animate={{ y: ['-10px', '200px'] }}
+                transition={{
+                  duration: 3 + Math.random() * 4,
+                  repeat: Infinity,
+                  delay: Math.random() * 5,
+                  ease: 'linear',
+                }}
+              >
+                {String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))}
+              </motion.span>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* === BOTTOM: Sound bar + time + end call === */}
+      <div className="relative z-10 mt-auto w-full px-5 pb-10">
+        {/* Sound bar — reactive frequency visualization */}
+        <div className="flex items-end justify-center gap-[2px]" style={{ height: '32px', marginBottom: '10px' }}>
+          {frequencyData.slice(0, 24).map((val, i) => {
+            const height = isPlaying ? Math.max(4, (val / 100) * 28) : 4
+            return (
+              <motion.div
+                key={i}
+                style={{
+                  width: '3px',
+                  borderRadius: '2px',
+                  backgroundColor: isPlaying
+                    ? `rgba(76, 175, 80, ${0.4 + (val / 100) * 0.6})`
+                    : 'rgba(76, 175, 80, 0.15)',
+                  height,
+                  boxShadow: val > 50 ? `0 0 4px rgba(76, 175, 80, 0.3)` : 'none',
+                }}
+                animate={{ height }}
+                transition={{ duration: 0.08 }}
+              />
+            )
+          })}
+        </div>
+
+        {/* Elapsed time + progress track */}
+        <div className="w-full">
+          <div className="flex justify-start mb-2">
+            <span style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: 'clamp(0.65rem, 2vw, 0.78rem)',
+              fontWeight: 600, color: '#4CAF50',
+              letterSpacing: '0.05em',
+              fontVariantNumeric: 'tabular-nums',
+              textShadow: '0 0 8px rgba(76, 175, 80, 0.2)',
+            }}>
               {formatTime(currentTime)}
             </span>
           </div>
 
           {/* Progress track */}
-          <div
-            style={{
-              width: '100%',
-              height: '4px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '2px',
-              overflow: 'hidden',
-            }}
-          >
+          <div style={{
+            width: '100%', height: '3px',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            borderRadius: '2px', overflow: 'hidden',
+          }}>
             <motion.div
               style={{
                 height: '100%',
-                background: 'linear-gradient(90deg, #2E7D32, #4CAF50)',
+                background: 'linear-gradient(90deg, #1B5E20, #4CAF50)',
                 borderRadius: '2px',
                 width: `${progressPercent}%`,
-                boxShadow: '0 0 8px rgba(76, 175, 80, 0.4)',
+                boxShadow: '0 0 6px rgba(76, 175, 80, 0.3)',
               }}
-              initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.3 }}
             />
@@ -249,25 +452,17 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </div>
 
         {/* End call button */}
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={handleComplete}
-            className="cursor-pointer border-none bg-transparent flex items-center justify-center"
-          >
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 20px rgba(211, 47, 47, 0.4), 0 4px 16px rgba(0,0,0,0.3)',
-                transform: 'rotate(135deg)',
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none">
+        <div className="flex justify-center mt-5">
+          <button onClick={handleComplete}
+            className="cursor-pointer border-none bg-transparent flex items-center justify-center">
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(211, 47, 47, 0.35), 0 4px 14px rgba(0,0,0,0.3)',
+              transform: 'rotate(135deg)',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="white" stroke="none">
                 <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
               </svg>
             </div>
