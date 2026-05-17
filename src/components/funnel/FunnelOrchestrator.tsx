@@ -4,12 +4,16 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
+import CallHook from './CallHook'
+import AudioCallScreen from './AudioCallScreen'
 
-type FunnelStep = 'landing' | 'pre_call_video'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio'
 
 const stepOrder: FunnelStep[] = [
   'landing',
   'pre_call_video',
+  'call_ringing',
+  'call_audio',
 ]
 
 export function FunnelOrchestrator() {
@@ -28,7 +32,11 @@ export function FunnelOrchestrator() {
       case 'landing':
         return <CinematicLanding onComplete={goToNextStep} />
       case 'pre_call_video':
-        return <PreCallVideo onComplete={() => {}} />
+        return <PreCallVideo onComplete={goToNextStep} />
+      case 'call_ringing':
+        return <CallHook onAnswer={goToNextStep} />
+      case 'call_audio':
+        return <AudioCallScreen onComplete={goToNextStep} />
       default:
         return null
     }

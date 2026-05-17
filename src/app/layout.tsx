@@ -23,6 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="preload" href="/videos/pre-llamada.mp4" as="video" />
+        <link rel="preload" href="/audio/call-audio.mp3" as="audio" />
       </head>
       <body className="antialiased bg-black text-white overflow-hidden">
         {children}
