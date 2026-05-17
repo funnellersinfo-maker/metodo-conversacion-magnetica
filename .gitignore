@@ -52,3 +52,8 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Large upload files — never push to git
+upload/
+# Large video files in public — deploy via Cloudflare directly
+public/videos/*.mp4
