@@ -22,6 +22,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
+        <link rel="preload" href="/videos/pre-llamada.mp4" as="video" />
       </head>
       <body className="antialiased bg-black text-white overflow-hidden">
         {children}

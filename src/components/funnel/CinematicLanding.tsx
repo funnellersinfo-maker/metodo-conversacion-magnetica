@@ -233,54 +233,53 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
               </p>
             </motion.div>
 
-            {/* INDICACIÓN DE AUDIO */}
+            {/* INDICACIÓN DE AUDIO — single line, headphones aligned, pulse below */}
             <motion.div
               className="relative flex flex-col items-center mt-5"
               initial={{ opacity: 0 }}
               animate={showContent ? { opacity: 1 } : {}}
               transition={{ duration: 1, delay: 1.7 }}
             >
-              <div className="relative flex items-center justify-center">
-                {/* Pulse rings */}
+              {/* 🎧 + text on one line, nowrap */}
+              <div className="flex items-center gap-2 relative z-10">
+                <span style={{ fontSize: 'clamp(0.85rem, 2.2vw, 1rem)', lineHeight: 1 }}>🎧</span>
+                <span
+                  style={{
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: 'clamp(0.55rem, 1.6vw, 0.72rem)',
+                    fontWeight: 600,
+                    color: '#FF8A50',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ACTIVA EL AUDIO PARA DESBLOQUEAR EL ACCESO
+                </span>
+              </div>
+
+              {/* Pulse glow directly below the headphones — centered, visible */}
+              <div className="relative mt-2 flex items-center justify-center" style={{ width: '60px', height: '30px' }}>
                 <div
                   style={{
-                    width: '40px', height: '40px', borderRadius: '50%',
-                    border: '2px solid rgba(255, 100, 40, 0.4)',
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    border: '2px solid rgba(255, 100, 40, 0.5)',
                     animation: 'pulseRing 2s ease-out infinite',
                     position: 'absolute',
+                    top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
                   }}
                 />
                 <div
                   style={{
-                    width: '40px', height: '40px', borderRadius: '50%',
-                    border: '1.5px solid rgba(255, 60, 0, 0.25)',
-                    animation: 'pulseRing2 2s ease-out infinite 0.5s',
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    border: '1.5px solid rgba(255, 60, 0, 0.3)',
+                    animation: 'pulseRing2 2.5s ease-out infinite 0.5s',
                     position: 'absolute',
+                    top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
                   }}
                 />
-                <div
-                  style={{
-                    width: '40px', height: '40px', borderRadius: '50%',
-                    border: '1px solid rgba(255, 80, 20, 0.15)',
-                    animation: 'pulseRing2 3s ease-out infinite 1s',
-                    position: 'absolute',
-                  }}
-                />
-                <div className="flex items-center gap-2 relative z-10">
-                  <span style={{ fontSize: 'clamp(0.85rem, 2.2vw, 1rem)' }}>🎧</span>
-                  <span
-                    style={{
-                      fontFamily: "'Cinzel', serif",
-                      fontSize: 'clamp(0.6rem, 1.8vw, 0.75rem)',
-                      fontWeight: 600,
-                      color: '#FF8A50',
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    ACTIVA EL AUDIO PARA DESBLOQUEAR EL ACCESO
-                  </span>
-                </div>
               </div>
             </motion.div>
           </div>
