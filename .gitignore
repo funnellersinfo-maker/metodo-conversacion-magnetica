@@ -56,4 +56,5 @@ server.log
 # Large upload files — never push to git
 upload/
 # Large video files in public — deploy via Cloudflare directly
-public/videos/*.mp4
+public/videos/*.mp4public/videos/*.mp4
+public/audio/vibracion-celular.aac

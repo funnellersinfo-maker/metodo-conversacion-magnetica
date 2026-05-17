@@ -124,7 +124,7 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
     >
       <video
         ref={videoRef}
-        src="/videos/pre-llamada.mp4"
+        src="/videos/dante-llamando.mp4"
         playsInline
         preload="auto"
         className="w-full h-full object-cover"

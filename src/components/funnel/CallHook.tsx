@@ -9,10 +9,12 @@ interface CallHookProps {
 
 export default function CallHook({ onAnswer }: CallHookProps) {
   const vibrationRef = useRef<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const answeredRef = useRef(false)
 
-  // Start real phone vibration immediately and keep it going
+  // Start real phone vibration + vibration sound loop immediately
   useEffect(() => {
+    // === HAPTIC VIBRATION ===
     const startVibration = () => {
       if (!navigator.vibrate) return
 
@@ -31,10 +33,35 @@ export default function CallHook({ onAnswer }: CallHookProps) {
 
     startVibration()
 
+    // === VIBRATION SOUND LOOP ===
+    const audio = new Audio('/audio/vibracion-celular.aac')
+    audio.loop = true
+    audio.volume = 1.0
+    audioRef.current = audio
+
+    audio.play().catch(() => {
+      // If autoplay blocked, try on first user interaction
+      const resumeOnInteraction = () => {
+        if (!answeredRef.current) {
+          audio.play().catch(() => {})
+        }
+        document.removeEventListener('touchstart', resumeOnInteraction)
+        document.removeEventListener('click', resumeOnInteraction)
+      }
+      document.addEventListener('touchstart', resumeOnInteraction, { once: true })
+      document.addEventListener('click', resumeOnInteraction, { once: true })
+    })
+
     return () => {
       // Stop vibration on unmount
       if (navigator.vibrate) navigator.vibrate(0)
       if (vibrationRef.current) clearTimeout(vibrationRef.current)
+      // Stop vibration sound
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        audioRef.current = null
+      }
     }
   }, [])
 
@@ -44,6 +71,11 @@ export default function CallHook({ onAnswer }: CallHookProps) {
     // Stop vibration immediately
     if (navigator.vibrate) navigator.vibrate(0)
     if (vibrationRef.current) clearTimeout(vibrationRef.current)
+    // Stop vibration sound
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
     onAnswer()
   }, [onAnswer])
 
