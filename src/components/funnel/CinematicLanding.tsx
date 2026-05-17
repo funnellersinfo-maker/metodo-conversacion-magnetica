@@ -126,16 +126,6 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
               0% { transform: scaleX(1) rotate(-3deg); }
               100% { transform: scaleX(0.85) rotate(3deg); }
             }
-            @keyframes pulseRing {
-              0% { transform: scale(0.8); opacity: 0.6; }
-              50% { transform: scale(1.4); opacity: 0; }
-              100% { transform: scale(0.8); opacity: 0; }
-            }
-            @keyframes pulseRing2 {
-              0% { transform: scale(0.8); opacity: 0.4; }
-              50% { transform: scale(1.8); opacity: 0; }
-              100% { transform: scale(0.8); opacity: 0; }
-            }
             @keyframes shimmerSweep {
               0% { transform: translateX(-100%) skewX(-20deg); }
               100% { transform: translateX(300%) skewX(-20deg); }
@@ -233,57 +223,39 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
               </p>
             </motion.div>
 
-            {/* INDICACIÓN DE AUDIO — single line, pulse directly below 🎧 */}
+            {/* SUBE EL VOLUMEN — CopyFilms style */}
             <motion.div
               className="mt-5"
               initial={{ opacity: 0 }}
               animate={showContent ? { opacity: 1 } : {}}
               transition={{ duration: 1, delay: 1.7 }}
             >
-              {/* Row: 🎧 + text on one line */}
-              <div className="flex items-start gap-2 justify-center">
-                {/* Headphones with pulse directly below it */}
-                <div className="relative flex flex-col items-center" style={{ width: '20px', flexShrink: 0 }}>
-                  <span style={{ fontSize: 'clamp(0.85rem, 2.2vw, 1rem)', lineHeight: 1 }}>🎧</span>
-                  {/* Pulse rings anchored directly below the 🎧 */}
-                  <div className="relative" style={{ width: '30px', height: '16px' }}>
-                    <div
-                      style={{
-                        width: '30px', height: '30px', borderRadius: '50%',
-                        border: '2px solid rgba(255, 100, 40, 0.5)',
-                        animation: 'pulseRing 2s ease-out infinite',
-                        position: 'absolute',
-                        top: '-4px', left: '50%',
-                        transform: 'translateX(-50%)',
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: '30px', height: '30px', borderRadius: '50%',
-                        border: '1.5px solid rgba(255, 60, 0, 0.3)',
-                        animation: 'pulseRing2 2.5s ease-out infinite 0.5s',
-                        position: 'absolute',
-                        top: '-4px', left: '50%',
-                        transform: 'translateX(-50%)',
-                      }}
-                    />
-                  </div>
-                </div>
-                {/* Text aligned with headphones */}
+              <div className="flex items-center justify-center gap-2">
+                {/* Red speaker icon */}
+                <svg
+                  width="18" height="18" viewBox="0 0 24 24"
+                  fill="none" stroke="#D32F2F" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+                {/* Text */}
                 <span
                   style={{
                     fontFamily: "'Cinzel', serif",
-                    fontSize: 'clamp(0.55rem, 1.6vw, 0.72rem)',
+                    fontSize: 'clamp(0.7rem, 2vw, 0.85rem)',
                     fontWeight: 600,
-                    color: '#FF8A50',
-                    letterSpacing: '0.08em',
+                    color: '#FFFFFF',
+                    letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                    paddingTop: '2px',
+                    lineHeight: 1,
                   }}
                 >
-                  ACTIVA EL AUDIO PARA DESBLOQUEAR EL ACCESO
+                  SUBE EL VOLUMEN
                 </span>
               </div>
             </motion.div>
