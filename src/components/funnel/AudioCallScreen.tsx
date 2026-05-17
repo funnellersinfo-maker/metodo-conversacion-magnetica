@@ -9,19 +9,32 @@ interface AudioCallScreenProps {
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const bgAudioRef = useRef<HTMLAudioElement | null>(null)
   const completedRef = useRef(false)
+  const bgStartedRef = useRef(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
 
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
     completedRef.current = true
+    // Stop background music
+    if (bgAudioRef.current) {
+      bgAudioRef.current.pause()
+      bgAudioRef.current.currentTime = 0
+    }
     onComplete()
   }, [onComplete])
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
+
+    // === Background music — starts at second 40, low volume ===
+    const bgAudio = new Audio('/audio/fondo-llamada.aac')
+    bgAudio.loop = true
+    bgAudio.volume = 0.18 // Low volume so it doesn't overpower the voice
+    bgAudioRef.current = bgAudio
 
     const playAudio = async () => {
       try {
@@ -38,6 +51,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handleEnded = () => handleComplete()
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
+
+      // Start background music at second 40
+      if (!bgStartedRef.current && audio.currentTime >= 40) {
+        bgStartedRef.current = true
+        bgAudio.play().catch(() => {})
+      }
     }
 
     audio.addEventListener('ended', handleEnded)
@@ -68,6 +87,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       audio.removeEventListener('pause', handlePause)
       clearInterval(keepAlive)
       audio.pause()
+      // Stop background music
+      bgAudio.pause()
+      bgAudio.currentTime = 0
+      bgAudioRef.current = null
     }
   }, [handleComplete])
 
