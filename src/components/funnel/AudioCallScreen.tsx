@@ -8,7 +8,7 @@ interface AudioCallScreenProps {
 }
 
 // Teleprompter captions — synced with audio at REAL TIME
-// Each caption starts/ends when the voice actually says it — slow and readable
+// Text appears WORD BY WORD at the pace of the narration
 const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 0, end: 1.5, text: 'Conectando...' },
   { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
@@ -40,9 +40,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
-  const [activeCaption, setActiveCaption] = useState('Conectando...')
+  const [activeCaptionIndex, setActiveCaptionIndex] = useState(0)
+  const [visibleWords, setVisibleWords] = useState(0)
   const [callEnded, setCallEnded] = useState(false)
   const [fadeToBlack, setFadeToBlack] = useState(false)
+  const wordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevCaptionIndexRef = useRef(0)
+
+  const currentCaption = CAPTIONS[activeCaptionIndex]
+  const words = currentCaption ? currentCaption.text.split(' ') : []
 
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
@@ -51,29 +57,55 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudioRef.current.pause()
       bgAudioRef.current.currentTime = 0
     }
-    // Show "Llamada finalizada" first
+    if (wordTimerRef.current) clearInterval(wordTimerRef.current)
     setCallEnded(true)
-    // After 2.5 seconds, fade to black
     setTimeout(() => {
       setFadeToBlack(true)
     }, 2500)
-    // After fade completes (2.5s + 1.5s), go to next step
     setTimeout(() => {
       onComplete()
     }, 4000)
   }, [onComplete])
 
+  // Word-by-word reveal effect
+  useEffect(() => {
+    if (activeCaptionIndex !== prevCaptionIndexRef.current) {
+      prevCaptionIndexRef.current = activeCaptionIndex
+      setVisibleWords(0)
+
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current)
+
+      const caption = CAPTIONS[activeCaptionIndex]
+      if (!caption) return
+
+      const totalWords = caption.text.split(' ').length
+      const duration = (caption.end - caption.start) * 1000 // ms
+      // Each word appears with a delay calculated from the caption duration
+      // We add a small initial delay (300ms) before the first word appears
+      const initialDelay = 300
+      const wordDelay = Math.max(150, (duration - initialDelay) / totalWords)
+
+      let wordCount = 0
+      wordTimerRef.current = setInterval(() => {
+        wordCount++
+        if (wordCount <= totalWords) {
+          setVisibleWords(wordCount)
+        } else {
+          if (wordTimerRef.current) clearInterval(wordTimerRef.current)
+        }
+      }, wordDelay)
+    }
+  }, [activeCaptionIndex])
+
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    // === Background music at second 40 ===
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
-    // === Web Audio API for frequency analysis ===
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -113,9 +145,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
 
-      // Update caption — slow fade, text stays readable
-      const caption = CAPTIONS.find(c => audio.currentTime >= c.start && audio.currentTime < c.end)
-      if (caption) setActiveCaption(caption.text)
+      // Find current caption index
+      const captionIndex = CAPTIONS.findIndex(c => audio.currentTime >= c.start && audio.currentTime < c.end)
+      if (captionIndex !== -1 && captionIndex !== activeCaptionIndex) {
+        setActiveCaptionIndex(captionIndex)
+      }
 
       // Start background music at second 40
       if (!bgStartedRef.current && audio.currentTime >= 40) {
@@ -153,8 +187,9 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudio.currentTime = 0
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current)
     }
-  }, [handleComplete])
+  }, [handleComplete, activeCaptionIndex])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -165,7 +200,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const audioDuration = 68.28
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
 
-  // SVG circular progress
   const RING_RADIUS = 52
   const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
   const ringProgress = (progressPercent / 100) * RING_CIRCUMFERENCE
@@ -264,21 +298,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.6, type: 'spring' }}
         >
-          <svg
-            width="124" height="124" viewBox="0 0 124 124"
-            style={{ position: 'absolute', transform: 'rotate(-90deg)' }}
-          >
+          <svg width="124" height="124" viewBox="0 0 124 124" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
             <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.1)" strokeWidth="3" strokeLinecap="round" />
-            <circle
-              cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="#4CAF50" strokeWidth="3" strokeLinecap="round"
-              strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset}
-              style={{ transition: 'stroke-dashoffset 0.3s ease', filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))' }}
-            />
-            <circle
-              cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.15)" strokeWidth="8" strokeLinecap="round"
-              strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset}
-              style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-            />
+            <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="#4CAF50" strokeWidth="3" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease', filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))' }} />
+            <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.15)" strokeWidth="8" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease' }} />
           </svg>
 
           <div style={{
@@ -300,7 +323,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — slow fade transitions === */}
+      {/* === TELEPROMPTER — word by word reveal === */}
       <motion.div
         className="relative z-10 mt-4 w-full px-6 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
@@ -311,28 +334,41 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '12px 0', transform: 'translateZ(0)' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
+          
           <AnimatePresence mode="wait">
             <motion.p
-              key={activeCaption}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
+              key={activeCaptionIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.9rem, 3.2vw, 1.1rem)',
+                fontSize: 'clamp(0.95rem, 3.4vw, 1.15rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
-                lineHeight: 1.7,
+                lineHeight: 1.8,
                 letterSpacing: '0.04em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
-                willChange: 'transform, opacity',
+                willChange: 'opacity',
                 transform: 'translateZ(0)',
                 WebkitBackfaceVisibility: 'hidden',
-                minHeight: '2.4em',
+                minHeight: '2.8em',
               }}
             >
-              {activeCaption}
+              {words.map((word, i) => (
+                <span
+                  key={i}
+                  style={{
+                    opacity: i < visibleWords ? 1 : 0,
+                    transition: 'opacity 0.3s ease',
+                    marginRight: '0.3em',
+                    display: 'inline',
+                  }}
+                >
+                  {word}
+                </span>
+              ))}
             </motion.p>
           </AnimatePresence>
         </div>
