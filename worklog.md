@@ -42,3 +42,20 @@
 
 ### Live:
 https://metodo-magnetico-dante.pages.dev
+
+---
+Task ID: RESTRICTION-001
+Agent: Main Agent
+Task: ADD STRONG EDITING RESTRICTION — NEVER edit files outside the scope the user explicitly requests
+
+Work Log:
+- User reported that while working on WhatsApp section, other parts of the funnel (AudioCallScreen teleprompter) were accidentally affected
+- Adding permanent restriction: ONLY edit files that the user explicitly asks about
+
+Stage Summary:
+- ⛔ CRITICAL RULE: When user says "edit WhatsApp section" → ONLY edit WhatsApp files
+- ⛔ CRITICAL RULE: When user says "edit the call screen" → ONLY edit call screen files  
+- ⛔ CRITICAL RULE: NEVER modify files outside the explicitly requested scope
+- ⛔ Files that are LOCKED (Layers 1-6) must NEVER be touched unless explicitly requested
+- ⛔ If a file change might affect other parts of the funnel, DO NOT make that change
+- This restriction applies to ALL future interactions in this session

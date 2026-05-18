@@ -262,132 +262,34 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Matrix green futuristic === */}
+      {/* === TELEPROMPTER — Clean text only, no box === */}
       <motion.div
-        className="relative z-10 mt-6 w-full px-5"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1, duration: 0.8 }}
+        className="relative z-10 mt-6 w-full px-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1, duration: 0.5 }}
       >
-        <div style={{
-          position: 'relative',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(0, 20, 0, 0.7), rgba(0, 10, 0, 0.9))',
-          border: '1px solid rgba(76, 175, 80, 0.2)',
-          boxShadow: '0 0 30px rgba(76, 175, 80, 0.08), inset 0 0 30px rgba(0, 20, 0, 0.3)',
-        }}>
-          {/* Rotating corner brackets */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-            {/* Top-left bracket */}
-            <div style={{
-              position: 'absolute', top: '6px', left: '6px',
-              width: '20px', height: '20px',
-              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
-              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Top-right bracket */}
-            <div style={{
-              position: 'absolute', top: '6px', right: '6px',
-              width: '20px', height: '20px',
-              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
-              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Bottom-left bracket */}
-            <div style={{
-              position: 'absolute', bottom: '6px', left: '6px',
-              width: '20px', height: '20px',
-              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
-              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Bottom-right bracket */}
-            <div style={{
-              position: 'absolute', bottom: '6px', right: '6px',
-              width: '20px', height: '20px',
-              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
-              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Rotating scan line */}
-            <motion.div
+        <div style={{ minHeight: '48px', textAlign: 'center' }}>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={activeCaption}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               style={{
-                position: 'absolute', left: 0, right: 0,
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.4), transparent)',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.75rem, 2.4vw, 0.9rem)',
+                fontWeight: 500,
+                color: 'rgba(76, 175, 80, 0.85)',
+                lineHeight: 1.5,
+                letterSpacing: '0.04em',
+                textShadow: '0 0 12px rgba(76, 175, 80, 0.25)',
               }}
-              animate={{ top: ['0%', '100%', '0%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-            />
-          </div>
-
-          {/* Header label */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 14px 4px',
-            borderBottom: '1px solid rgba(76, 175, 80, 0.1)',
-          }}>
-            <motion.div
-              style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4CAF50' }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-            <span style={{
-              fontFamily: "'Courier New', monospace",
-              fontSize: '0.55rem', fontWeight: 700,
-              color: 'rgba(76, 175, 80, 0.6)',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-            }}>
-              TRANSCRIPCIÓN EN VIVO
-            </span>
-          </div>
-
-          {/* Caption text */}
-          <div style={{ padding: '12px 16px 14px', minHeight: '60px' }}>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={activeCaption}
-                initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-                style={{
-                  fontFamily: "'Courier New', monospace",
-                  fontSize: 'clamp(0.72rem, 2.2vw, 0.85rem)',
-                  fontWeight: 400,
-                  color: '#4CAF50',
-                  lineHeight: 1.5,
-                  letterSpacing: '0.03em',
-                  textShadow: '0 0 10px rgba(76, 175, 80, 0.4), 0 0 20px rgba(76, 175, 80, 0.15)',
-                }}
-              >
-                {activeCaption}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-
-          {/* Matrix rain effect — tiny falling characters */}
-          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.08 }}>
-            {Array.from({ length: 12 }, (_, i) => (
-              <motion.span
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: `${8 + (i * 8) % 90}%`,
-                  fontSize: '0.5rem',
-                  color: '#4CAF50',
-                  fontFamily: 'monospace',
-                }}
-                animate={{ y: ['-10px', '200px'] }}
-                transition={{
-                  duration: 3 + Math.random() * 4,
-                  repeat: Infinity,
-                  delay: Math.random() * 5,
-                  ease: 'linear',
-                }}
-              >
-                {String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))}
-              </motion.span>
-            ))}
-          </div>
+            >
+              {activeCaption}
+            </motion.p>
+          </AnimatePresence>
         </div>
       </motion.div>
 
