@@ -8,31 +8,31 @@ interface AudioCallScreenProps {
 }
 
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 1.5, text: 'Conectando...' },
-  { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
-  { start: 4, end: 7, text: 'Tienes suerte de haber atendido.' },
-  { start: 7, end: 8.7, text: 'La mayoría de los hombres' },
-  { start: 8.7, end: 10.5, text: 'gritando por atención...' },
-  { start: 10.5, end: 12.2, text: 'Y tú... tú acabas de entrar' },
-  { start: 12.2, end: 14, text: 'en la frecuencia correcta.' },
-  { start: 14, end: 17.5, text: 'La atracción era una alquimia.' },
-  { start: 17.5, end: 19.5, text: 'Había misterio, silencios' },
-  { start: 19.5, end: 21.5, text: 'que decían más que mil palabras.' },
-  { start: 21.5, end: 24.5, text: 'Pero algo se rompió.' },
-  { start: 24.5, end: 26.8, text: 'El mundo se llenó de plantillas' },
-  { start: 26.8, end: 29, text: 'y frases de copia y pega...' },
-  { start: 29, end: 33, text: 'Que detecta en menos de 7 segundos.' },
-  { start: 33, end: 36, text: 'Te has vuelto predecible.' },
-  { start: 36, end: 39.5, text: 'Lo predecible es invisible.' },
-  { start: 39.5, end: 43, text: 'No te ignora porque no le gustes.' },
-  { start: 43, end: 45, text: 'Te ignora porque ya sabe' },
-  { start: 45, end: 47, text: 'qué vas a decir después.' },
-  { start: 47, end: 50, text: 'Eres un eco en su bandeja.' },
-  { start: 50, end: 52, text: 'Pero escucha bien...' },
-  { start: 52, end: 54, text: 'lo que viene es el cortocircuito.' },
-  { start: 54, end: 56, text: 'Un sistema que no puede ignorar' },
-  { start: 56, end: 58, text: 'porque habla a su instinto.' },
-  { start: 58, end: 68, text: 'No cuelgues... el primer capítulo.' },
+  { start: 0, end: 1.8, text: 'Conectando...' },
+  { start: 1.8, end: 4.5, text: 'Hey, no cuelgues.' },
+  { start: 4.5, end: 7.5, text: 'Tienes suerte de haber atendido.' },
+  { start: 7.5, end: 9.5, text: 'La mayoría de los hombres' },
+  { start: 9.5, end: 11.5, text: 'gritando por atención...' },
+  { start: 11.5, end: 13.5, text: 'Y tú... tú acabas de entrar' },
+  { start: 13.5, end: 15.5, text: 'en la frecuencia correcta.' },
+  { start: 15.5, end: 19, text: 'La atracción era una alquimia.' },
+  { start: 19, end: 21.5, text: 'Había misterio, silencios' },
+  { start: 21.5, end: 24, text: 'que decían más que mil palabras.' },
+  { start: 24, end: 27, text: 'Pero algo se rompió.' },
+  { start: 27, end: 29.5, text: 'El mundo se llenó de plantillas' },
+  { start: 29.5, end: 32, text: 'y frases de copia y pega...' },
+  { start: 32, end: 35.5, text: 'Que detecta en menos de 7 segundos.' },
+  { start: 35.5, end: 39, text: 'Te has vuelto predecible.' },
+  { start: 39, end: 42.5, text: 'Lo predecible es invisible.' },
+  { start: 42.5, end: 46, text: 'No te ignora porque no le gustes.' },
+  { start: 46, end: 48.5, text: 'Te ignora porque ya sabe' },
+  { start: 48.5, end: 51, text: 'qué vas a decir después.' },
+  { start: 51, end: 54, text: 'Eres un eco en su bandeja.' },
+  { start: 54, end: 56.5, text: 'Pero escucha bien...' },
+  { start: 56.5, end: 59, text: 'lo que viene es el cortocircuito.' },
+  { start: 59, end: 62, text: 'Un sistema que no puede ignorar' },
+  { start: 62, end: 65, text: 'porque habla a su instinto.' },
+  { start: 65, end: 68.28, text: 'No cuelgues... el primer capítulo.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -42,18 +42,43 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const animFrameRef = useRef<number | null>(null)
   const completedRef = useRef(false)
   const bgStartedRef = useRef(false)
-  const captionIndexRef = useRef(0)
   const onCompleteRef = useRef(onComplete)
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
-  const [activeCaptionIndex, setActiveCaptionIndex] = useState(0)
-  const [visibleWords, setVisibleWords] = useState(0)
+  const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1)
   const [callEnded, setCallEnded] = useState(false)
 
-  const words = CAPTIONS[activeCaptionIndex]?.text.split(' ') || []
+  // ============ PURE TIME-BASED WORD REVEAL ============
+  // Instead of setInterval, compute visible words directly from currentTime
+  // This guarantees perfect sync with audio — no cutting off, no drift
+
+  const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
+  const words = activeCaption?.text.split(' ') || []
+
+  // Compute how many words should be visible based on current time
+  let visibleWords = 0
+  if (activeCaption) {
+    const totalWords = words.length
+    const captionDuration = activeCaption.end - activeCaption.start
+    const elapsed = currentTime - activeCaption.start
+
+    if (elapsed >= 0) {
+      // Words finish revealing at 80% of caption duration, rest is reading time
+      const revealPortion = 0.80
+      const revealTime = captionDuration * revealPortion
+
+      if (elapsed >= revealTime) {
+        visibleWords = totalWords
+      } else {
+        // Distribute words evenly across the reveal portion
+        const progress = elapsed / revealTime
+        visibleWords = Math.min(totalWords, Math.ceil(progress * totalWords))
+      }
+    }
+  }
 
   // Keep onComplete ref updated
   useEffect(() => {
@@ -133,12 +158,14 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       const t = audio.currentTime
       setCurrentTime(t)
 
-      // Find active caption
-      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
-      if (idx !== -1 && idx !== captionIndexRef.current) {
-        captionIndexRef.current = idx
+      // Find active caption with buffer — look ahead 0.3s so captions appear slightly early
+      // and look behind 0.5s so captions stay visible a bit longer
+      const idx = CAPTIONS.findIndex(c => t >= (c.start - 0.15) && t < c.end + 0.5)
+      if (idx !== -1 && idx !== activeCaptionIndex) {
         setActiveCaptionIndex(idx)
       }
+      // If we're past the end of current caption but before next one, keep showing current
+      // (already handled by the +0.5 buffer above)
 
       // Start background music at second 40
       if (!bgStartedRef.current && t >= 40) {
@@ -181,34 +208,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       timersRef.current = []
     }
   }, [])
-
-  // ============ WORD-BY-WORD TELEPROMPTER — synced to audio timing ============
-  useEffect(() => {
-    const caption = CAPTIONS[activeCaptionIndex]
-    if (!caption) return
-
-    setVisibleWords(0)
-
-    const totalWords = caption.text.split(' ').length
-    const durationMs = (caption.end - caption.start) * 1000
-
-    // Pace that fills the full duration of the caption
-    // Small initial delay, then spread words evenly
-    const initialDelay = 150
-    const wordDelay = Math.max(180, (durationMs - initialDelay) / totalWords)
-
-    let count = 0
-    const timer = setInterval(() => {
-      count++
-      if (count <= totalWords) {
-        setVisibleWords(count)
-      } else {
-        clearInterval(timer)
-      }
-    }, wordDelay)
-
-    return () => clearInterval(timer)
-  }, [activeCaptionIndex])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -359,7 +358,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — word by word === */}
+      {/* === TELEPROMPTER — pure time-based, no setInterval === */}
       <motion.div
         className="relative z-10 mt-3 w-full px-3 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
@@ -371,25 +370,24 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           
-          <AnimatePresence mode="wait">
-            <motion.p
+          {activeCaption && (
+            <p
               key={activeCaptionIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.62rem, 2.4vw, 0.82rem)',
+                // Font size increased ~2% from original: was clamp(0.62rem, 2.4vw, 0.82rem)
+                fontSize: 'clamp(0.632rem, 2.45vw, 0.836rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
-                lineHeight: 1.4,
+                lineHeight: 1.5,
                 letterSpacing: '0.01em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
                 willChange: 'opacity',
                 transform: 'translateZ(0)',
                 WebkitBackfaceVisibility: 'hidden',
-                minHeight: '1.8em',
+                minHeight: '2em',
+                transition: 'opacity 0.3s ease',
+                opacity: 1,
               }}
             >
               {words.map((word, i) => (
@@ -397,7 +395,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.3s ease',
+                    transition: 'opacity 0.25s ease',
                     marginRight: '0.22em',
                     display: 'inline',
                   }}
@@ -405,8 +403,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   {word}
                 </span>
               ))}
-            </motion.p>
-          </AnimatePresence>
+            </p>
+          )}
         </div>
       </motion.div>
 

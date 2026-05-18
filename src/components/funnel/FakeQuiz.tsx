@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface FakeQuizProps {
@@ -42,20 +42,32 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
   const [videoEnded, setVideoEnded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const completedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+
+  // Keep onComplete ref fresh to prevent stale closures
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     const timer = setTimeout(() => setShowContent(true), 400)
     return () => clearTimeout(timer)
   }, [])
 
+  // Use refs for state that callbacks need — prevents stale closures after inactivity
+  const answeredRef = useRef(false)
+  const showVideoRef = useRef(false)
+
   const handleAnswer = useCallback(() => {
-    if (answered) return
+    if (answeredRef.current) return
+    answeredRef.current = true
     setAnswered(true)
     // After brief delay, show video behind translucent overlay
     setTimeout(() => {
+      showVideoRef.current = true
       setShowVideo(true)
     }, 300)
-  }, [answered])
+  }, [])
 
   const handleVideoEnded = useCallback(() => {
     setVideoEnded(true)
@@ -64,8 +76,8 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
   const handleContinue = useCallback(() => {
     if (completedRef.current) return
     completedRef.current = true
-    onComplete()
-  }, [onComplete])
+    onCompleteRef.current()
+  }, [])
 
   // Auto-play video when shown
   useEffect(() => {
@@ -84,9 +96,12 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     }
     playVideo()
 
-    const handleEnded = () => handleVideoEnded()
+    const handleEnded = () => {
+      setVideoEnded(true)
+    }
     video.addEventListener('ended', handleEnded)
 
+    // Keep-alive: ensure video keeps playing even if browser pauses it
     const keepAlive = setInterval(() => {
       if (video.paused && !video.ended) {
         video.play().catch(() => {})
@@ -98,7 +113,17 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
       clearInterval(keepAlive)
       video.pause()
     }
-  }, [showVideo, handleVideoEnded])
+  }, [showVideo])
+
+  // Keep quiz interactive: force re-render periodically to refresh event handlers
+  // This prevents stale closures from making buttons unresponsive after inactivity
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceUpdate(prev => prev + 1)
+    }, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <motion.div
@@ -149,6 +174,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            style={{ opacity: answered ? 0.5 : 1, transition: 'opacity 0.5s ease' }}
           >
             {/* Shield icon — CopyFilms style */}
             <motion.div
@@ -173,7 +199,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
 
             {/* "VERIFICACIÓN DE ACCESO" — CopyFilms style with red lines */}
             <motion.div
-              className="flex items-center gap-3 mb-6"
+              className="flex items-center gap-3 mb-2"
               initial={{ opacity: 0 }}
               animate={showContent ? { opacity: 1 } : {}}
               transition={{ duration: 0.6, delay: 0.4 }}
@@ -190,6 +216,25 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
                 VERIFICACIÓN DE ACCESO
               </span>
               <div style={{ width: 30, height: 1, background: 'linear-gradient(90deg, #D32F2F, transparent)' }} />
+            </motion.div>
+
+            {/* "1/5 PREGUNTAS" — tricks the eye into thinking there are more */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={showContent ? { opacity: 1 } : {}}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mb-6"
+            >
+              <span style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.55rem, 1.6vw, 0.65rem)',
+                fontWeight: 500,
+                color: 'rgba(255, 255, 255, 0.35)',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+              }}>
+                1/5 PREGUNTAS
+              </span>
             </motion.div>
 
             {/* Question — large white bold */}
@@ -215,9 +260,10 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
               {QUESTIONS[0].options.map((option, index) => (
                 <motion.button
                   key={option.letter}
-                  onClick={handleAnswer}
+                  onClick={() => handleAnswer()}
                   onTouchEnd={(e) => { e.preventDefault(); handleAnswer() }}
                   className="relative cursor-pointer overflow-hidden w-full text-left"
+                  disabled={answered}
                   style={{
                     background: 'rgba(34, 34, 34, 0.95)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -226,11 +272,12 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12,
+                    pointerEvents: answered ? 'none' : 'auto',
                   }}
                   initial={{ opacity: 0, x: -30 }}
                   animate={showContent ? { opacity: 1, x: 0 } : {}}
                   transition={{ duration: 0.5, delay: 0.9 + index * 0.15 }}
-                  whileTap={{ scale: 0.97, borderColor: 'rgba(211, 47, 47, 0.5)' }}
+                  whileTap={!answered ? { scale: 0.97, borderColor: 'rgba(211, 47, 47, 0.5)' } : {}}
                 >
                   {/* Red letter square */}
                   <div style={{
@@ -279,7 +326,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
 
             {/* CONTINUAR button */}
             <motion.button
-              onClick={handleContinue}
+              onClick={() => handleContinue()}
               onTouchEnd={(e) => { e.preventDefault(); handleContinue() }}
               className="relative z-10 cursor-pointer border-none overflow-hidden"
               style={{

@@ -1,5 +1,5 @@
 # DESIGN SPEC — Metodo Magnetico Funnel
-# ULTIMA ACTUALIZACION: 2026-05-18 (sesion 3)
+# ULTIMA ACTUALIZACION: 2026-05-18 (sesion 4)
 # ARCHIVO DE MEMORIA: Si el chat se pierde, leer este archivo para saber el estado exacto del proyecto.
 
 ## PROYECTO
@@ -23,37 +23,31 @@
 
 ## CAMBIOS DE ESTA SESION (2026-05-18)
 
-### AudioCallScreen
-- Teleprompter: timing ajustado — palabras se reparten en toda la duración del caption (no se corta al 80%)
-- "Llamada finalizada": ahora es PANTALLA ROJA COMPLETA (gradiente #B71C1C → #D32F2F → #C62828)
-- Ícono de teléfono colgado + duración + texto blanco
-- Transición directa al quiz en 1.5s (sin fade to black intermedio)
+### AudioCallScreen — SESION 4 FIX
+- **Teleprompter REESCRITO**: Eliminado setInterval. Ahora es PURE TIME-BASED.
+  - visibleWords se calcula directamente de `currentTime` vs caption start/end
+  - Las palabras se revelan en el 80% de la duración del caption, 20% restante es tiempo de lectura
+  - NUNCA se cortan: no hay interval que se pueda limpiar prematuramente
+  - Buffer de +0.5s en `end` de cada caption para que no desaparezcan demasiado rápido
+  - Buffer de -0.15s en `start` para que aparezcan ligeramente antes
+- **Font size aumentado ~2%**: de `clamp(0.62rem, 2.4vw, 0.82rem)` a `clamp(0.632rem, 2.45vw, 0.836rem)`
+- **Line height aumentado**: de 1.4 a 1.5 para mejor legibilidad
+- Timestamps de captions ajustados con márgenes más amplios entre frases
 
-### PreCallVideo
-- Video reemplazado: "PRIMER VIDEO OFICIAL PRE LLAMADA CORTO.mp4"
-- Comprimido de 7.7MB a 468KB (CRF 35, 480p, faststart)
-- Inicia muteado para autoplay garantizado en móvil, intenta desmuteo automático
+### FakeQuiz — SESION 4 FIX
+- **"1/5 PREGUNTAS"** añadido debajo de "VERIFICACIÓN DE ACCESO" — engaña al ojo
+- **Botones funcionales tras inactividad**: 
+  - Se usan refs (answeredRef) en vez de solo state para evitar stale closures
+  - onComplete se mantiene en ref actualizado (onCompleteRef)
+  - forceUpdate cada 30s previene que React pierda los event handlers
+  - onClick y onTouchEnd ambos apuntan a handleAnswer con ref-based guard
+- Al responder: toda la zona del quiz baja a opacity 0.5 (transition CSS 0.5s)
 
-### FakeQuiz — DISEÑO NUEVO estilo CopyFilms
-- Fondo negro sólido (#000000)
-- Escudo rojo con check (shield icon) en rounded square
-- "VERIFICACIÓN DE ACCESO" en rojo con líneas decorativas a los lados
-- 3 preguntas FOMO nicho seducción:
-  1. "¿Cuánto tiempo llevas usando los mismos mensajes que ella ya detecta?" (A/B/C)
-  2. "¿Qué pasa cuando ella lee tu mensaje y no responde?" (A/B/C)
-  3. "¿Estás listo para ver el sistema que ella no puede ignorar?" (A/B/C)
-- NOTA: Solo se muestra la pregunta 1 (las 3 son el mismo botón — cualquiera avanza)
-- Botones: fondo oscuro #222, borde blanco sutil, cuadrado rojo con letra A/B/C
-- Al tocar CUALQUIER botón: quiz se vuelve 50% translúcido + aparece video payaso-vidrio.mp4 de fondo
-- Video se reproduce completo de principio a fin
-- Al acabar video: fondo semi-negro translúcido (70%) + botón rojo "CONTINUAR"
-- Botón CONTINUAR avanza al siguiente paso (podcast)
-
-### FunnelOrchestrator
-- Reducido de 10 a 9 pasos (clown_short ahora está dentro del quiz)
-- Paso 4 = FakeQuiz (incluye video payaso + botón CONTINUAR)
-- Paso 5 = DantePodcast
-- Paso 6 = ClownVideo completo (con sound prompt)
+### Cambios anteriores (sesion 3)
+- AudioCallScreen: "Llamada finalizada" = PANTALLA ROJA COMPLETA
+- PreCallVideo: Video reemplazado y comprimido a 468KB
+- FakeQuiz: Diseño CopyFilms + video payaso overlay + CONTINUAR
+- FunnelOrchestrator: 9 pasos (clown_short dentro del quiz)
 
 ## ARCHIVOS PRINCIPALES
 - src/app/page.tsx — Importa FunnelOrchestrator
