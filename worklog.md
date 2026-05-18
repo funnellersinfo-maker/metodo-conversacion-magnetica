@@ -211,3 +211,40 @@ Stage Summary:
 - Audio setup runs once and is stable (no more restarts on caption changes)
 - Code pushed to GitHub with Git LFS for large files
 - Cloudflare deployment: https://metodo-magnetico-dante.pages.dev
+
+---
+
+Task ID: CRITICAL-FIX-002
+Agent: Main Agent
+Task: Complete rewrite of FunnelOrchestrator + AudioCallScreen to fix step jumping bug + Cloudflare deployment issue
+
+Work Log:
+- ROOT CAUSE FOUND: goToNextStep was being called multiple times, jumping 5+ steps at once
+  - FunnelOrchestrator used string-based step matching (stepOrder.indexOf) which could fail
+  - No guard against rapid successive calls
+- REWROTE FunnelOrchestrator.tsx:
+  - Replaced string-based steps with numeric index (0-9)
+  - Added `transitioningRef` guard: blocks rapid calls for 1 second
+  - Only advances ONE step at a time, guaranteed
+- REWROTE AudioCallScreen.tsx:
+  - REMOVED red hang-up button entirely (user never requested it)
+  - `triggerComplete()` uses `completedRef` guard (no useCallback)
+  - All timers tracked in `timersRef` for proper cleanup
+  - Audio setup effect runs ONCE with truly empty deps
+  - Caption tracking uses `captionIndexRef` (ref, not state in deps)
+  - Teleprompter: initialDelay 600ms, minWordDelay 450ms, fade 0.6s
+- CLOUDFLARE DEPLOYMENT ISSUE FOUND:
+  - Cloudflare is serving OLD code (build ID xLEelMnQaig3r_VmR9FWj vs local qfaSr62qSX08snmD4QDnl)
+  - Different JS chunk hashes, different CSS
+  - The Cloudflare Pages GitHub integration is NOT rebuilding on new pushes
+  - Possible causes: LFS migration broke the webhook, or build is failing
+  - Tried: empty commit push, GitHub Actions (token lacks workflow scope), Wrangler deploy (no API token)
+  - USER NEEDS TO: manually trigger redeploy in Cloudflare dashboard, or set up CLOUDFLARE_API_TOKEN
+- Dev server works correctly at localhost:3000
+
+Stage Summary:
+- FunnelOrchestrator: bulletproof numeric steps with transition lock
+- AudioCallScreen: no hang-up button, stable audio setup, slow teleprompter
+- Code pushed to GitHub (commit 546900f)
+- Cloudflare NOT deploying new code — requires manual intervention
+- User should test via Preview Panel (dev server) first
