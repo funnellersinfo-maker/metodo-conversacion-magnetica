@@ -248,3 +248,35 @@ Stage Summary:
 - Code pushed to GitHub (commit 546900f)
 - Cloudflare NOT deploying new code — requires manual intervention
 - User should test via Preview Panel (dev server) first
+
+---
+Task ID: DEPLOY-003
+Agent: Main Agent
+Task: Full audit + Cloudflare Pages deployment with new token to project metodo-dante
+
+Work Log:
+- Read all funnel components (10 total) and verified no API routes, no server-side imports
+- next.config.ts already had output: 'export' — no changes needed
+- No API routes found (src/app/api/ doesn't exist)
+- Compressed payaso-completo.mp4 from 110MB → 5.3MB (CRF 35, 480p, ultrafast)
+- Compressed wallpaper images from 700KB → 90-100KB (sharp resize to 800px, JPEG quality 60)
+- Updated FunnelOrchestrator to reference payaso-completo-final.mp4 instead of payaso-completo.mp4
+- Added metadataBase to layout.tsx (fixes og:image using localhost instead of production URL)
+- Generated favicon from dante-profile.jpg (32x32)
+- SEO: title, description, OG tags, twitter cards, lang="es", favicon all verified
+- Build: 49 files, 24MB total, index.html 28KB
+- Created new Cloudflare Pages project "metodo-dante" via API
+- Deployed with wrangler: 49 files uploaded successfully
+- Verified live site: HTTP 200, HTML contains "Método Magnético", "Dante", "cortocircuito"
+- Verified assets: call-audio.mp3 (200), dante-profile.jpg (200)
+- Pushed to GitHub (clean commit, removed 110MB file from repo)
+
+Stage Summary:
+- ✅ Deployed to https://metodo-dante.pages.dev
+- ✅ No red hang-up button (removed in previous session)
+- ✅ Funnel order: landing → pre_call_video → call_ringing → call_audio → quiz → clown_short → podcast → clown_full → lock_screen → whatsapp_chat
+- ✅ Teleprompter: 900ms initial delay, 650ms/word, 1.0s fade
+- ✅ Video compressed 110MB → 5.3MB (95% reduction)
+- ✅ Images compressed 700KB → 90KB (87% reduction)
+- ✅ SEO complete with metadataBase, OG, twitter cards
+- ✅ favicon generated
