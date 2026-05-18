@@ -44,6 +44,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [displayedText, setDisplayedText] = useState('')
   const typewriterRef = useRef<number | null>(null)
   const prevCaptionRef = useRef('')
+  const [callEnded, setCallEnded] = useState(false)
+  const [fadeToBlack, setFadeToBlack] = useState(false)
 
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
@@ -52,7 +54,16 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudioRef.current.pause()
       bgAudioRef.current.currentTime = 0
     }
-    onComplete()
+    // Show "Llamada finalizada" first
+    setCallEnded(true)
+    // After 2.5 seconds, fade to black
+    setTimeout(() => {
+      setFadeToBlack(true)
+    }, 2500)
+    // After fade completes (2.5s + 1.5s), go to next step
+    setTimeout(() => {
+      onComplete()
+    }, 4000)
   }, [onComplete])
 
   useEffect(() => {
