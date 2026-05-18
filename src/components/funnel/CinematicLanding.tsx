@@ -59,10 +59,11 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
         >
-          {/* HIDDEN PRELOADER — download video + audio while user reads landing */}
+          {/* HIDDEN PRELOADER — download assets while user reads landing */}
           <link rel="prefetch" href="/videos/dante-llamando.mp4" />
           <link rel="prefetch" href="/audio/call-audio.mp3" />
           <link rel="prefetch" href="/audio/vibracion-celular.aac" />
+          <link rel="prefetch" href="/videos/vidrio-roto.mp4" />
           {/* BACKGROUND */}
           <div
             className="absolute inset-0"

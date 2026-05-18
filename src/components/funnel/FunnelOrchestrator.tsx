@@ -6,14 +6,16 @@ import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
 import CallHook from './CallHook'
 import AudioCallScreen from './AudioCallScreen'
+import FakeQuiz from './FakeQuiz'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz'
 
 const stepOrder: FunnelStep[] = [
   'landing',
   'pre_call_video',
   'call_ringing',
   'call_audio',
+  'quiz',
 ]
 
 export function FunnelOrchestrator() {
@@ -37,6 +39,8 @@ export function FunnelOrchestrator() {
         return <CallHook onAnswer={goToNextStep} />
       case 'call_audio':
         return <AudioCallScreen onComplete={goToNextStep} />
+      case 'quiz':
+        return <FakeQuiz onComplete={goToNextStep} />
       default:
         return null
     }
@@ -78,7 +82,7 @@ export function FunnelOrchestrator() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 z-50"
         >
           {renderStep()}

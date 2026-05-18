@@ -95,7 +95,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
     const t1 = setTimeout(() => {
       onCompleteRef.current()
-    }, 1500)
+    }, 800)
     timersRef.current.push(t1)
   }
 
@@ -346,11 +346,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       {/*
         ARQUITECTURA:
         - position:absolute + left:0;right:0 + padding = ancho INAMOVIBLE
-        - Cada palabra visible = <span> inline → navegador wrappea naturalmente
-        - Solo se renderizan spans de palabras VISIBLES (no placeholders invisibles)
+        - Cada palabra visible = <span> inline → navegador wrappea en espacios
+        - wordBreak:normal = NUNCA corta palabras, baja enteras a siguiente línea
+        - overflow:hidden = red de seguridad anti-desbordamiento
         - Última palabra visible = efecto glow cinematográfico #66FF66
-        - Palabras anteriores = verde suave con sutil glow
-        - overflow: hidden = red de seguridad anti-desbordamiento
       */}
       <div style={{
         position: 'absolute',
@@ -358,13 +357,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         left: 0,
         right: 0,
         boxSizing: 'border-box',
-        padding: '0 4vw',
+        padding: '0 5vw',
         zIndex: 10,
         pointerEvents: 'none',
         transform: 'translateY(-50%)',
       }}>
         <div style={{
-          maxWidth: '420px',
+          maxWidth: '400px',
           margin: '0 auto',
           boxSizing: 'border-box',
           overflow: 'hidden',
@@ -372,17 +371,17 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           {activeCaption && visibleWords > 0 && (
             <p style={{
               fontFamily: "'Cinzel', serif",
-              fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
+              fontSize: 'clamp(0.72rem, 3vw, 0.95rem)',
               fontWeight: 500,
-              lineHeight: 1.7,
+              lineHeight: 1.8,
               letterSpacing: '0.02em',
               margin: 0,
               padding: 0,
               textAlign: 'center',
               boxSizing: 'border-box',
               width: '100%',
-              overflowWrap: 'break-word',
-              wordBreak: 'break-word',
+              wordBreak: 'normal',
+              overflowWrap: 'normal',
             }}>
               {words.slice(0, visibleWords).map((word, i) => {
                 const isLast = i === visibleWords - 1
@@ -396,7 +395,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                         ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)'
                         : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                       transition: 'color 0.3s ease, text-shadow 0.3s ease',
-                      marginLeft: i === 0 ? 0 : '0.25em',
+                      marginLeft: i === 0 ? 0 : '0.28em',
                     }}
                   >
                     {word}
