@@ -343,72 +343,62 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — CAJA ABSOLUTA, texto NUNCA sale de aquí === */}
+      {/* === TELEPROMPTER — SOLUCIÓN DEFINITIVA v2 === */}
       {/*
-        ESTRATEGIA NUCLEAR:
-        1. position:absolute + left/right = ancho INAMOVIBLE (no flex, no %, no vw)
-        2. overflow:hidden = si algo se sale, no se ve
-        3. Solo renderizar palabras VISIBLES (opacity:0 ocupaba espacio y empujaba)
-        4. <p> normal sin motion.p = sin layout issues de AnimatePresence
+        DIAGNÓSTICO FINAL: El texto se sale porque NINGÚN contenedor le está limitando
+        el ancho de verdad. La solución: position:absolute + left:0 + right:0 + padding
+        crea un contenedor que es EXACTAMENTE el ancho de la pantalla menos el padding.
+        El texto se renderiza como string plano (.join) para que el navegador haga wrap.
       */}
       <div style={{
         position: 'absolute',
-        left: '3vw',
-        right: '3vw',
-        top: '32%',
-        bottom: '22%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
+        top: '30%',
+        left: 0,
+        right: 0,
+        boxSizing: 'border-box',
+        padding: '0 4vw',
         zIndex: 10,
         pointerEvents: 'none',
       }}>
-        {/* Subtle glow behind text */}
         <div style={{
-          position: 'absolute',
-          inset: '0',
-          background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(76, 175, 80, 0.03) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Caja invisible — left/right ya limita el ancho, esto es solo para centrar texto */}
-        <div style={{
-          width: '100%',
-          textAlign: 'center',
-          overflow: 'hidden',
+          maxWidth: '420px',
+          margin: '0 auto',
+          boxSizing: 'border-box',
         }}>
-          {activeCaption && (
+          {activeCaption && visibleWords > 0 && (
             <p style={{
               fontFamily: "'Cinzel', serif",
               fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
               fontWeight: 500,
-              color: 'rgba(76, 175, 80, 0.9)',
               lineHeight: 1.7,
               letterSpacing: '0.02em',
-              textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
               margin: 0,
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
+              padding: 0,
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              display: 'block',
+              width: '100%',
+              // WRAPPING: estas 3 propiedades juntas garantizan wrap
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}>
-              {/* SOLO palabras visibles — las invisibles NO se renderizan */}
-              {words.slice(0, visibleWords).map((word, i) => {
-                const isLatest = i === visibleWords - 1
-                return (
-                  <span
-                    key={`${activeCaptionIndex}-${i}`}
-                    style={{
-                      color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
-                      textShadow: isLatest
-                        ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
-                        : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
-                      transition: 'color 0.3s ease, text-shadow 0.3s ease',
-                    }}
-                  >
-                    {word}{' '}
-                  </span>
-                )
-              })}
+              {/* Texto como UN SOLO STRING — el navegador ve espacios reales */}
+              {visibleWords > 1 && (
+                <span style={{
+                  color: 'rgba(76, 175, 80, 0.9)',
+                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                }}>
+                  {words.slice(0, visibleWords - 1).join(' ')}{' '}
+                </span>
+              )}
+              <span style={{
+                color: '#66FF66',
+                textShadow: '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)',
+                transition: 'color 0.3s ease, text-shadow 0.3s ease',
+              }}>
+                {words[visibleWords - 1]}
+              </span>
             </p>
           )}
         </div>
