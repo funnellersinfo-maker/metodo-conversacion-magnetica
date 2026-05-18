@@ -344,12 +344,16 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       </div>
 
       {/* === TELEPROMPTER — Contenedor invisible casi al borde, palabras completas === */}
-      <motion.div
-        className="relative z-10 mt-4 w-full flex-1 flex items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.4 }}
-        style={{ minHeight: 0, padding: '0 8px' }}
+      <div
+        className="relative z-10 mt-4 flex-1"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: 0,
+          width: '100%',
+          boxSizing: 'border-box',
+          padding: '0 3%',
+        }}
       >
         {/* Subtle glow behind text */}
         <div style={{
@@ -359,16 +363,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           pointerEvents: 'none',
         }} />
 
-        {/* Invisible container — casi al borde del móvil, suficiente espacio para que nada se corte */}
+        {/* Invisible container — casi al borde del móvil (94% del ancho) */}
         <div style={{
-          width: 'calc(100% - 12px)',
+          width: '100%',
           maxWidth: '420px',
+          margin: '0 auto',
           textAlign: 'center',
-          padding: '8px 0',
-          // Invisible al ojo — sin bordes, sin fondo
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
+          boxSizing: 'border-box',
         }}>
           <AnimatePresence mode="wait">
             {activeCaption && (
@@ -387,10 +388,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   letterSpacing: '0.02em',
                   textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                   margin: 0,
-                  // CRITICAL: wrap natural en espacios reales, NUNCA cortar palabras
+                  // BULLETPROOF WRAPPING: wrap at word boundaries first,
+                  // break within word ONLY as absolute last resort
                   whiteSpace: 'normal',
-                  wordBreak: 'keep-all',
-                  overflowWrap: 'normal',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
                 {words.map((word, i) => {
@@ -406,6 +410,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                         textShadow: isLatest
                           ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
                           : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                        display: 'inline',
                       }}
                     >
                       {word}{' '}
@@ -416,7 +421,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
 
       {/* === BOTTOM: Sound bar + time === */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
