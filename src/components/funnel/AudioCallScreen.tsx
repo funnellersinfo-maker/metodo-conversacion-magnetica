@@ -7,32 +7,27 @@ interface AudioCallScreenProps {
   onComplete: () => void
 }
 
+// ============ COPIE EXACTO DE LA LLAMADA — Sincronización Quirúrgica ============
+// Timestamps calculados del audio real de Dante (24fps timecode → segundos)
+// Los huecos entre bloques son INTENCIONALES — coinciden con respiraciones/suspiros del actor
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 1.8, text: 'Conectando...' },
-  { start: 1.8, end: 4.5, text: 'Hey, no cuelgues.' },
-  { start: 4.5, end: 7.5, text: 'Tienes suerte de haber atendido.' },
-  { start: 7.5, end: 9.5, text: 'La mayoría de los hombres' },
-  { start: 9.5, end: 11.5, text: 'gritando por atención...' },
-  { start: 11.5, end: 13.5, text: 'Y tú... tú acabas de entrar' },
-  { start: 13.5, end: 15.5, text: 'en la frecuencia correcta.' },
-  { start: 15.5, end: 19, text: 'La atracción era una alquimia.' },
-  { start: 19, end: 21.5, text: 'Había misterio, silencios' },
-  { start: 21.5, end: 24, text: 'que decían más que mil palabras.' },
-  { start: 24, end: 27, text: 'Pero algo se rompió.' },
-  { start: 27, end: 29.5, text: 'El mundo se llenó de plantillas' },
-  { start: 29.5, end: 32, text: 'y frases de copia y pega...' },
-  { start: 32, end: 35.5, text: 'Que detecta en menos de 7 segundos.' },
-  { start: 35.5, end: 39, text: 'Te has vuelto predecible.' },
-  { start: 39, end: 42.5, text: 'Lo predecible es invisible.' },
-  { start: 42.5, end: 46, text: 'No te ignora porque no le gustes.' },
-  { start: 46, end: 48.5, text: 'Te ignora porque ya sabe' },
-  { start: 48.5, end: 51, text: 'qué vas a decir después.' },
-  { start: 51, end: 54, text: 'Eres un eco en su bandeja.' },
-  { start: 54, end: 56.5, text: 'Pero escucha bien...' },
-  { start: 56.5, end: 59, text: 'lo que viene es el cortocircuito.' },
-  { start: 59, end: 62, text: 'Un sistema que no puede ignorar' },
-  { start: 62, end: 65, text: 'porque habla a su instinto.' },
-  { start: 65, end: 68.28, text: 'No cuelgues... el primer capítulo.' },
+  { start: 1.08, end: 3.62, text: 'Hey... no cuelgues.' },
+  { start: 4.08, end: 6.41, text: 'Tienes suerte de haber atendido.' },
+  { start: 6.83, end: 11.20, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' },
+  { start: 11.62, end: 15.83, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 16.41, end: 20.00, text: 'Hace años, la atracción era una especie de alquimia.' },
+  { start: 20.50, end: 25.91, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 26.20, end: 28.20, text: 'Pero algo se rompió.' },
+  { start: 28.83, end: 33.41, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' },
+  { start: 33.75, end: 36.83, text: 'que ella ya detecta en menos de 7 segundos.' },
+  { start: 37.20, end: 43.75, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' },
+  { start: 44.20, end: 46.91, text: 'Ella no te ignora porque no le gustes;' },
+  { start: 47.20, end: 51.41, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 51.91, end: 54.83, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 55.20, end: 61.62, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 62.20, end: 68.83, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' },
+  { start: 69.41, end: 71.20, text: 'No cuelgues.' },
+  { start: 71.83, end: 75.00, text: 'El primer capítulo está por desbloquearse.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -52,13 +47,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [callEnded, setCallEnded] = useState(false)
 
   // ============ PURE TIME-BASED WORD REVEAL ============
-  // Instead of setInterval, compute visible words directly from currentTime
-  // This guarantees perfect sync with audio — no cutting off, no drift
-
+  // visibleWords se calcula DIRECTAMENTE de currentTime vs timestamps
+  // No hay setInterval — imposible que se corte o se desincronice
   const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
   const words = activeCaption?.text.split(' ') || []
 
-  // Compute how many words should be visible based on current time
   let visibleWords = 0
   if (activeCaption) {
     const totalWords = words.length
@@ -66,14 +59,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const elapsed = currentTime - activeCaption.start
 
     if (elapsed >= 0) {
-      // Words finish revealing at 80% of caption duration, rest is reading time
-      const revealPortion = 0.80
+      // Words reveal during 75% of caption, 25% is reading time at full text
+      const revealPortion = 0.75
       const revealTime = captionDuration * revealPortion
 
       if (elapsed >= revealTime) {
         visibleWords = totalWords
       } else {
-        // Distribute words evenly across the reveal portion
         const progress = elapsed / revealTime
         visibleWords = Math.min(totalWords, Math.ceil(progress * totalWords))
       }
@@ -85,20 +77,17 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     onCompleteRef.current = onComplete
   }, [onComplete])
 
-  // ============ COMPLETE HANDLER — RED screen + fast transition to quiz ============
+  // ============ COMPLETE HANDLER — RED screen + transition ============
   const triggerComplete = () => {
     if (completedRef.current) return
     completedRef.current = true
 
-    // Stop background audio
     if (bgAudioRef.current) {
       bgAudioRef.current.pause()
     }
 
-    // Show RED "Llamada finalizada" overlay
     setCallEnded(true)
 
-    // After 1.5s, advance directly to quiz (no fade to black)
     const t1 = setTimeout(() => {
       onCompleteRef.current()
     }, 1500)
@@ -110,7 +99,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const audio = audioRef.current
     if (!audio) return
 
-    // Background music (starts at second 40)
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
     bgAudio.volume = 0.18
@@ -140,7 +128,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       // Web Audio API not available
     }
 
-    // Play the call audio
     const playAudio = async () => {
       try {
         audio.volume = 1.0
@@ -158,14 +145,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       const t = audio.currentTime
       setCurrentTime(t)
 
-      // Find active caption with buffer — look ahead 0.3s so captions appear slightly early
-      // and look behind 0.5s so captions stay visible a bit longer
-      const idx = CAPTIONS.findIndex(c => t >= (c.start - 0.15) && t < c.end + 0.5)
+      // Find active caption — NO artificial buffers
+      // The gaps between captions are INTENTIONAL (breathing/sighs in the audio)
+      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
       if (idx !== -1 && idx !== activeCaptionIndex) {
         setActiveCaptionIndex(idx)
       }
-      // If we're past the end of current caption but before next one, keep showing current
-      // (already handled by the +0.5 buffer above)
+      // If we're between captions (in a breathing gap), keep showing the last one
+      // until the next one starts — this is already handled because we only
+      // change activeCaptionIndex when we find a matching caption
 
       // Start background music at second 40
       if (!bgStartedRef.current && t >= 40) {
@@ -215,7 +203,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const audioDuration = 68.28
+  const audioDuration = 75.0
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
 
   const RING_RADIUS = 52
@@ -239,10 +227,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Red background */}
             <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #B71C1C, #D32F2F, #C62828)' }} />
             
-            {/* Phone icon */}
             <motion.div
               style={{
                 width: '64px', height: '64px', borderRadius: '50%',
@@ -358,7 +344,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — pure time-based, no setInterval === */}
+      {/* === TELEPROMPTER — pure time-based, copie exacto con timestamps quirúrgicos === */}
       <motion.div
         className="relative z-10 mt-3 w-full px-3 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
@@ -366,7 +352,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         transition={{ delay: 0.8, duration: 0.4 }}
         style={{ minHeight: 0 }}
       >
-        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '4px 0', transform: 'translateZ(0)', whiteSpace: 'nowrap' }}>
+        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '4px 0', transform: 'translateZ(0)' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           
@@ -375,7 +361,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               key={activeCaptionIndex}
               style={{
                 fontFamily: "'Cinzel', serif",
-                // Font size increased ~2% from original: was clamp(0.62rem, 2.4vw, 0.82rem)
                 fontSize: 'clamp(0.632rem, 2.45vw, 0.836rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
