@@ -343,84 +343,74 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — CAJA INVISIBLE que FUERZA al texto a quedarse dentro === */}
-      <div
-        className="relative z-10 mt-4 flex-1"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 0,
-        }}
-      >
+      {/* === TELEPROMPTER — CAJA ABSOLUTA, texto NUNCA sale de aquí === */}
+      {/*
+        ESTRATEGIA NUCLEAR:
+        1. position:absolute + left/right = ancho INAMOVIBLE (no flex, no %, no vw)
+        2. overflow:hidden = si algo se sale, no se ve
+        3. Solo renderizar palabras VISIBLES (opacity:0 ocupaba espacio y empujaba)
+        4. <p> normal sin motion.p = sin layout issues de AnimatePresence
+      */}
+      <div style={{
+        position: 'absolute',
+        left: '3vw',
+        right: '3vw',
+        top: '32%',
+        bottom: '22%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        zIndex: 10,
+        pointerEvents: 'none',
+      }}>
         {/* Subtle glow behind text */}
         <div style={{
           position: 'absolute',
-          inset: '15% 5%',
+          inset: '0',
           background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(76, 175, 80, 0.03) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
 
-        {/*
-          CONTENEDOR INVISIBLE — Usa vw (viewport width) que es ABSOLUTO e INAMOVIBLE.
-          94vw = 94% del ancho de la pantalla del móvil. El texto NUNCA puede salirse.
-          overflow:hidden como red de seguridad — si algo se desborda, no se ve.
-        */}
+        {/* Caja invisible — left/right ya limita el ancho, esto es solo para centrar texto */}
         <div style={{
-          width: '94vw',
-          maxWidth: '420px',
+          width: '100%',
           textAlign: 'center',
           overflow: 'hidden',
-          boxSizing: 'border-box',
         }}>
-          <AnimatePresence mode="wait">
-            {activeCaption && (
-              <motion.p
-                key={activeCaptionIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
-                  fontWeight: 500,
-                  color: 'rgba(76, 175, 80, 0.9)',
-                  lineHeight: 1.7,
-                  letterSpacing: '0.02em',
-                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
-                  margin: 0,
-                  width: '100%',
-                  // Wrap en límites de palabra, romper dentro de palabra solo como último recurso
-                  whiteSpace: 'normal',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {words.map((word, i) => {
-                  const isVisible = i < visibleWords
-                  const isLatest = isVisible && i === visibleWords - 1
-                  return (
-                    <span
-                      key={i}
-                      style={{
-                        opacity: isVisible ? 1 : 0,
-                        transition: 'opacity 0.3s ease, color 0.4s ease, text-shadow 0.4s ease',
-                        color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
-                        textShadow: isLatest
-                          ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
-                          : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
-                        display: 'inline',
-                      }}
-                    >
-                      {word}{' '}
-                    </span>
-                  )
-                })}
-              </motion.p>
-            )}
-          </AnimatePresence>
+          {activeCaption && (
+            <p style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
+              fontWeight: 500,
+              color: 'rgba(76, 175, 80, 0.9)',
+              lineHeight: 1.7,
+              letterSpacing: '0.02em',
+              textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+              margin: 0,
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+            }}>
+              {/* SOLO palabras visibles — las invisibles NO se renderizan */}
+              {words.slice(0, visibleWords).map((word, i) => {
+                const isLatest = i === visibleWords - 1
+                return (
+                  <span
+                    key={`${activeCaptionIndex}-${i}`}
+                    style={{
+                      color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
+                      textShadow: isLatest
+                        ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
+                        : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                      transition: 'color 0.3s ease, text-shadow 0.3s ease',
+                    }}
+                  >
+                    {word}{' '}
+                  </span>
+                )
+              })}
+            </p>
+          )}
         </div>
       </div>
 
