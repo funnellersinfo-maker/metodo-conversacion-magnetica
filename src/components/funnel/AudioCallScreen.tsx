@@ -47,7 +47,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1)
   const [callEnded, setCallEnded] = useState(false)
 
-  // ============ WORD REVEAL — Pausado, cinematográfico, en sync con audio ============
+  // ============ WORD REVEAL — Lento, cinematográfico, en sync con audio ============
   const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
   const words = activeCaption?.text.split(' ') || []
 
@@ -58,18 +58,21 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const elapsed = currentTime - activeCaption.start
 
     if (elapsed >= 0) {
-      // Revelar palabras a lo largo del 95% de la duración del bloque
-      // (no 75% como antes — eso era muy rápido)
-      const revealPortion = 0.95
+      // Revelar palabras a lo largo del 90% de la duración del bloque
+      // 10% final = pausa con todo el texto visible antes del siguiente bloque
+      const revealPortion = 0.90
       const revealTime = captionDuration * revealPortion
 
       if (elapsed >= revealTime) {
         visibleWords = totalWords
       } else {
         const progress = elapsed / revealTime
-        // Pequeña pausa inicial (5%) antes de empezar a revelar
-        const adjustedProgress = Math.max(0, (progress - 0.05) / 0.95)
-        visibleWords = Math.min(totalWords, Math.ceil(adjustedProgress * totalWords))
+        // Pausa inicial del 8% antes de empezar a revelar
+        // Esto crea el efecto de "escribiendo" — pausa → palabra → pausa → palabra
+        const adjustedProgress = Math.max(0, (progress - 0.08) / 0.92)
+        // Math.floor = revelado MÁS LENTO que Math.ceil
+        // Cada palabra necesita más progreso para aparecer
+        visibleWords = Math.min(totalWords, Math.floor(adjustedProgress * totalWords) + (adjustedProgress > 0 ? 1 : 0))
       }
     }
   }
@@ -106,7 +109,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
-    // Web Audio API for frequency bars
+    // Web Audio API for frequency bars — SOLO para visualización
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -115,43 +118,21 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       source.connect(analyser)
       analyser.connect(audioCtx.destination)
       analyserRef.current = analyser
-    } catch {
-      // Web Audio API not available
-    }
 
-    // ============ HIGH-FREQ ANIMATION LOOP ============
-    // requestAnimationFrame at ~60fps for smooth word reveal
-    // (timeupdate alone fires ~4x/sec → jerky on mobile)
-    let lastCaptionIdx = -1
-    const animLoop = () => {
-      if (!completedRef.current) {
-        const t = audio.currentTime
-        setCurrentTime(t)
-
-        // Find active caption — clear during gaps (between blocks)
-        const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
-        if (idx !== lastCaptionIdx) {
-          lastCaptionIdx = idx
-          setActiveCaptionIndex(idx)
-        }
-
-        // Start background music at second 40
-        if (!bgStartedRef.current && t >= 40) {
-          bgStartedRef.current = true
-          bgAudio.play().catch(() => {})
-        }
-
-        // Update frequency bars
-        if (analyserRef.current) {
+      // Loop separado SOLO para barras de frecuencia — NO toca estado de tiempo/captions
+      const updateFrequency = () => {
+        if (analyserRef.current && !completedRef.current) {
           const data = new Uint8Array(analyserRef.current.frequencyBinCount)
           analyserRef.current.getByteFrequencyData(data)
           const normalized = Array.from(data).map(v => Math.round((v / 255) * 100))
           setFrequencyData(normalized)
         }
+        animFrameRef.current = requestAnimationFrame(updateFrequency)
       }
-      animFrameRef.current = requestAnimationFrame(animLoop)
+      updateFrequency()
+    } catch {
+      // Web Audio API not available
     }
-    animLoop()
 
     const playAudio = async () => {
       try {
@@ -165,9 +146,28 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     playAudio()
 
     const handleEnded = () => triggerComplete()
-    audio.addEventListener('ended', handleEnded)
 
-    // Keep-alive
+    // ============ TIMEUPDATE — Actualiza tiempo y captions ~4x/seg ============
+    // ESTABLE en móvil — NO causa los 60 re-renders/seg que colgaban la app
+    const handleTimeUpdate = () => {
+      const t = audio.currentTime
+      setCurrentTime(t)
+
+      // Find active caption — -1 = entre bloques (texto desaparece)
+      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
+      setActiveCaptionIndex(idx)
+
+      // Start background music at second 40
+      if (!bgStartedRef.current && t >= 40) {
+        bgStartedRef.current = true
+        bgAudio.play().catch(() => {})
+      }
+    }
+
+    audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+
+    // Keep-alive — si el audio se pausa solo, reanudar
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
@@ -187,6 +187,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
     return () => {
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('pause', handlePause)
       clearInterval(keepAlive)
       audio.pause()
@@ -349,7 +350,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         - Solo se renderizan spans de palabras VISIBLES (no placeholders invisibles)
         - Última palabra visible = efecto glow cinematográfico #66FF66
         - Palabras anteriores = verde suave con sutil glow
-        - NO invisible spans, NO nowrap → NUNCA se desborda
+        - overflow: hidden = red de seguridad anti-desbordamiento
       */}
       <div style={{
         position: 'absolute',
