@@ -198,10 +198,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const totalWords = caption.text.split(' ').length
     const durationMs = (caption.end - caption.start) * 1000
 
-    // VERY SLOW pace: 900ms before first word, then generous time per word
-    // Minimum 650ms per word — forced slow for dramatic reading effect
-    const initialDelay = 900
-    const wordDelay = Math.max(650, (durationMs - initialDelay) / totalWords)
+    // Balanced pace: 400ms before first word, then natural timing per word
+    // Minimum 280ms per word — follows audio rhythm
+    const initialDelay = 400
+    const wordDelay = Math.max(280, (durationMs - initialDelay) / totalWords)
 
     let count = 0
     const timer = setInterval(() => {
@@ -365,10 +365,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.4 }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.95rem, 3.4vw, 1.15rem)',
+                fontSize: 'clamp(0.82rem, 2.8vw, 1rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
                 lineHeight: 1.8,
@@ -385,7 +385,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 1.0s ease',
+                    transition: 'opacity 0.5s ease',
                     marginRight: '0.3em',
                     display: 'inline',
                   }}
