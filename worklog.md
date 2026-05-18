@@ -177,3 +177,37 @@ Stage Summary:
 - Call-ended transition prevents jarring jump to WhatsApp
 - Video assets copied (not optimized yet due to ffmpeg timeout — can optimize later)
 - Dev server compiling normally
+
+---
+
+Task ID: CRITICAL-FIX-001
+Agent: Main Agent
+Task: Fix critical funnel bugs: step ordering after call, teleprompter speed, push to Cloudflare
+
+Work Log:
+- Identified root cause: AudioCallScreen useEffect had `activeCaptionIndex` in dependency array
+  - Every caption change caused the entire audio setup to re-run (pause, remove listeners, create new AudioContext, etc.)
+  - This caused audio instability and potentially skipped funnel steps
+- Fixed AudioCallScreen.tsx:
+  - Separated audio setup effect (empty deps, runs ONCE) from caption tracking
+  - Used `activeCaptionRef` to track captions without re-running the audio effect
+  - Used `onCompleteRef` to keep onComplete reference stable
+  - `handleComplete` is now stable (no deps that change)
+  - Word-by-word teleprompter significantly slowed:
+    - initialDelay: 300ms → 500ms
+    - minWordDelay: 150ms → 380ms
+    - word fade transition: 0.3s → 0.5s
+- Fixed FunnelOrchestrator.tsx:
+  - `goToNextStep` now uses `useCallback` with functional state update `setCurrentStep(prev => ...)`
+  - This prevents stale closure issues and ensures correct step transitions
+  - The callback is stable (empty deps) so child components don't re-render unnecessarily
+- Installed Git LFS for large video file (payaso-completo.mp4, 110MB)
+- Migrated git history with `git lfs migrate import` to convert large file to LFS
+- Successfully pushed to GitHub → Cloudflare Pages will auto-deploy
+
+Stage Summary:
+- Critical bug fixed: call → quiz (NOT call → WhatsApp notification)
+- Teleprompter 2.5x slower than before
+- Audio setup runs once and is stable (no more restarts on caption changes)
+- Code pushed to GitHub with Git LFS for large files
+- Cloudflare deployment: https://metodo-magnetico-dante.pages.dev
