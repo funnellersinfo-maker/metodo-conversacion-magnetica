@@ -7,27 +7,27 @@ interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// Teleprompter captions — REAL transcript, ~15% faster than audio for teleprompter feel
-// Timing multiplied by ~0.85 so text appears slightly ahead of voice (slower, more readable)
+// Teleprompter captions — REAL transcript, real-time sync with audio (~1.0x)
+// Each caption appears when the voice says it — 50% slower than previous 0.85x
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 1.3, text: 'Conectando...' },
-  { start: 1.3, end: 3.4, text: 'Hey, no cuelgues.' },
-  { start: 3.4, end: 5.9, text: 'Tienes suerte de haber atendido.' },
-  { start: 5.9, end: 8.9, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
-  { start: 8.9, end: 11.9, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
-  { start: 11.9, end: 14.9, text: 'Hace años la atracción era una especie de alquimia.' },
-  { start: 14.9, end: 18.3, text: 'Había misterio, había silencios que decían más que mil palabras.' },
-  { start: 18.3, end: 20.8, text: 'Pero algo se rompió.' },
-  { start: 20.8, end: 24.6, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
-  { start: 24.6, end: 28, text: 'Que ella ya detecta en menos de siete segundos.' },
-  { start: 28, end: 30.6, text: 'Te has vuelto predecible.' },
-  { start: 30.6, end: 33.6, text: 'Y en la biología del deseo... lo predecible es invisible.' },
-  { start: 33.6, end: 36.5, text: 'Ella no te ignora porque no le gustes.' },
-  { start: 36.5, end: 39.9, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
-  { start: 39.9, end: 42.5, text: 'Eres un eco más en su bandeja de entrada.' },
-  { start: 42.5, end: 45.9, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
-  { start: 45.9, end: 49.3, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto.' },
-  { start: 49.3, end: 58, text: 'No cuelgues... el primer capítulo está por desbloquearse.' },
+  { start: 0, end: 1.5, text: 'Conectando...' },
+  { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
+  { start: 4, end: 7, text: 'Tienes suerte de haber atendido.' },
+  { start: 7, end: 10.5, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
+  { start: 10.5, end: 14, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 14, end: 17.5, text: 'Hace años la atracción era una especie de alquimia.' },
+  { start: 17.5, end: 21.5, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 21.5, end: 24.5, text: 'Pero algo se rompió.' },
+  { start: 24.5, end: 29, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
+  { start: 29, end: 33, text: 'Que ella ya detecta en menos de siete segundos.' },
+  { start: 33, end: 36, text: 'Te has vuelto predecible.' },
+  { start: 36, end: 39.5, text: 'Y en la biología del deseo... lo predecible es invisible.' },
+  { start: 39.5, end: 43, text: 'Ella no te ignora porque no le gustes.' },
+  { start: 43, end: 47, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 47, end: 50, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 50, end: 54, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 54, end: 58, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto.' },
+  { start: 58, end: 68, text: 'No cuelgues... el primer capítulo está por desbloquearse.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -298,7 +298,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
               style={{
                 fontFamily: "'Cinzel', serif",
                 fontSize: 'clamp(0.82rem, 2.8vw, 0.95rem)',
