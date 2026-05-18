@@ -354,13 +354,14 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       */}
       <div style={{
         position: 'absolute',
-        top: '30%',
+        top: '46%',
         left: 0,
         right: 0,
         boxSizing: 'border-box',
         padding: '0 4vw',
         zIndex: 10,
         pointerEvents: 'none',
+        transform: 'translateY(-50%)',
       }}>
         <div style={{
           maxWidth: '420px',

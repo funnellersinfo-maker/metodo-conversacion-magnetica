@@ -22,6 +22,9 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
     const video = videoRef.current
     if (!video) return
 
+    // Force load immediately — browser may have cached from preload
+    video.load()
+
     // Auto-play with sound — user gesture from CTA click carries over
     const playVideo = async () => {
       try {
@@ -41,22 +44,26 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       }
     }
 
-    playVideo()
+    // Try to play as soon as ANY data is available
+    const handleCanPlay = () => {
+      playVideo()
+    }
+
+    // Also try immediately in case video is already loaded/cached
+    if (video.readyState >= 3) {
+      playVideo()
+    }
 
     const handleEnded = () => handleComplete()
 
-    // CRITICAL: If video stalls (buffer), wait and auto-resume
     const handleStalled = () => {
-      console.log('Video stalled, attempting resume...')
       if (!video.paused && !completedRef.current) {
         video.play().catch(() => {})
       }
     }
 
-    // CRITICAL: If video pauses unexpectedly (browser power saving), resume it
     const handlePause = () => {
       if (!completedRef.current) {
-        // Small delay to avoid race conditions, then force resume
         setTimeout(() => {
           if (!video.ended && !completedRef.current) {
             video.play().catch(() => {})
@@ -65,12 +72,6 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       }
     }
 
-    // CRITICAL: If video is waiting for data, auto-resume when ready
-    const handlePlaying = () => {
-      // Video is playing — good
-    }
-
-    // CRITICAL: On error, try to restart from current position
     const handleError = () => {
       if (!completedRef.current && video.error) {
         const currentTime = video.currentTime
@@ -80,25 +81,25 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       }
     }
 
-    // CRITICAL: Keep video awake — if it stops buffering, nudge it
+    // Keep video awake
     const keepAlive = setInterval(() => {
       if (video.paused && !video.ended && !completedRef.current) {
         video.play().catch(() => {})
       }
-    }, 1000)
+    }, 500)
 
+    video.addEventListener('canplay', handleCanPlay)
     video.addEventListener('ended', handleEnded)
     video.addEventListener('stalled', handleStalled)
     video.addEventListener('pause', handlePause)
-    video.addEventListener('playing', handlePlaying)
     video.addEventListener('error', handleError)
     video.addEventListener('waiting', handleStalled)
 
     return () => {
+      video.removeEventListener('canplay', handleCanPlay)
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('stalled', handleStalled)
       video.removeEventListener('pause', handlePause)
-      video.removeEventListener('playing', handlePlaying)
       video.removeEventListener('error', handleError)
       video.removeEventListener('waiting', handleStalled)
       clearInterval(keepAlive)
@@ -120,11 +121,12 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       className="fixed inset-0 z-50 bg-black select-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.2 }}
     >
       <video
         ref={videoRef}
         src="/videos/dante-llamando.mp4"
+        poster="/images/video-poster.jpg"
         playsInline
         preload="auto"
         className="w-full h-full object-cover"
