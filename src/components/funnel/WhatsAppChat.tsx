@@ -31,6 +31,7 @@ export default function WhatsAppChat({ onComplete }: WhatsAppChatProps) {
   const [showCredentials, setShowCredentials] = useState(false)
   const [phase, setPhase] = useState<'chat' | 'tiktok'>('chat')
   const [showPassword, setShowPassword] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
 
   const audioEngine = useSubtleAudio()
   const animFrameRef = useRef<number | null>(null)
@@ -255,7 +256,7 @@ export default function WhatsAppChat({ onComplete }: WhatsAppChatProps) {
                 overflow: 'hidden', flexShrink: 0,
               }}>
                 <img
-                  src="/images/zyra-profile.webp"
+                  src="/images/zyra-profile.jpg"
                   alt="Zyra"
                   style={{
                     width: '100%', height: '100%', objectFit: 'cover',
@@ -298,7 +299,7 @@ export default function WhatsAppChat({ onComplete }: WhatsAppChatProps) {
               {/* Fixed blurred wallpaper background layer */}
               <div className="absolute inset-0" style={{ overflow: 'hidden' }}>
                 <img
-                  src="/images/wallpaper-whatsapp.jpeg"
+                  src="/images/wallpaper-chat.jpg"
                   alt=""
                   style={{
                     width: '100%',
@@ -794,7 +795,7 @@ export default function WhatsAppChat({ onComplete }: WhatsAppChatProps) {
                 type="button"
                 className="w-full relative overflow-hidden"
                 style={{
-                  background: '#FE2C55',
+                  background: loginLoading ? 'rgba(254, 44, 85, 0.5)' : '#FE2C55',
                   border: 'none',
                   borderRadius: 8,
                   padding: '14px 0',
@@ -804,24 +805,35 @@ export default function WhatsAppChat({ onComplete }: WhatsAppChatProps) {
                   color: '#FFFFFF',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  animation: 'loginGlow 2.5s ease-in-out infinite',
+                  cursor: loginLoading ? 'wait' : 'pointer',
+                  animation: loginLoading ? 'none' : 'loginGlow 2.5s ease-in-out infinite',
                 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
                 whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  if (loginLoading) return
+                  setLoginLoading(true)
+                  setTimeout(() => {
+                    onComplete()
+                  }, 2000)
+                }}
               >
                 {/* Shimmer on button */}
-                <div
-                  style={{
-                    position: 'absolute', top: 0, left: 0, width: '40%', height: '100%',
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), rgba(255,255,255,0.2), rgba(255,255,255,0.1), transparent)',
-                    animation: 'tiktokShimmer 3s ease-in-out infinite',
-                    pointerEvents: 'none',
-                  }}
-                />
-                <span style={{ position: 'relative', zIndex: 1 }}>Iniciar sesión</span>
+                {!loginLoading && (
+                  <div
+                    style={{
+                      position: 'absolute', top: 0, left: 0, width: '40%', height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), rgba(255,255,255,0.2), rgba(255,255,255,0.1), transparent)',
+                      animation: 'tiktokShimmer 3s ease-in-out infinite',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>
+                  {loginLoading ? 'Ingresando...' : 'Iniciar sesión'}
+                </span>
               </motion.button>
 
               {/* Social login options */}

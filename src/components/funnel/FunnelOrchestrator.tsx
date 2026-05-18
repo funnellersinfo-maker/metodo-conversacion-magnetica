@@ -6,14 +6,18 @@ import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
 import CallHook from './CallHook'
 import AudioCallScreen from './AudioCallScreen'
+import LockScreenNotification from './LockScreenNotification'
+import WhatsAppChat from './WhatsAppChat'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'lock_screen' | 'whatsapp_chat'
 
 const stepOrder: FunnelStep[] = [
   'landing',
   'pre_call_video',
   'call_ringing',
   'call_audio',
+  'lock_screen',
+  'whatsapp_chat',
 ]
 
 export function FunnelOrchestrator() {
@@ -37,6 +41,10 @@ export function FunnelOrchestrator() {
         return <CallHook onAnswer={goToNextStep} />
       case 'call_audio':
         return <AudioCallScreen onComplete={goToNextStep} />
+      case 'lock_screen':
+        return <LockScreenNotification onOpen={goToNextStep} />
+      case 'whatsapp_chat':
+        return <WhatsAppChat onComplete={goToNextStep} />
       default:
         return null
     }

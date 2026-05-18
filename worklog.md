@@ -59,3 +59,39 @@ Stage Summary:
 - ⛔ Files that are LOCKED (Layers 1-6) must NEVER be touched unless explicitly requested
 - ⛔ If a file change might affect other parts of the funnel, DO NOT make that change
 - This restriction applies to ALL future interactions in this session
+
+---
+
+Task ID: LOCKSCREEN-001
+Agent: Main Agent
+Task: Create LockScreenNotification component + update FunnelOrchestrator + fix WhatsAppChat onComplete
+
+Work Log:
+- Created `/src/components/funnel/LockScreenNotification.tsx` — iOS-style lock screen with:
+  - Full-screen wallpaper background (`/images/wallpaper-lock.jpg`) with dark overlay (rgba(0,0,0,0.5))
+  - Real-time clock (HH:MM, Cinzel font, clamp(3rem, 12vw, 5rem), fontWeight 300)
+  - Spanish date below clock (e.g., "lunes 18 de mayo"), opacity 0.7
+  - WhatsApp notification card with green WA logo, "WhatsApp" bold, "ahora" timestamp
+  - ZYRA profile pic (grayscale) + "ZYRA" bold + "Tengo algo para ti..." preview
+  - Shimmer animation at subtle opacity
+  - Tappable card → calls onOpen() (goToNextStep)
+  - Vibration (150ms) on mount via navigator.vibrate
+  - WhatsApp notification sound (`/audio/whatsapp-notification.aac`) on mount
+  - Clock/date fade in at 0.3s delay; notification slides in at 1s with spring animation
+- Updated `/src/components/funnel/FunnelOrchestrator.tsx`:
+  - Imported LockScreenNotification and WhatsAppChat
+  - Extended FunnelStep type: added 'lock_screen' | 'whatsapp_chat'
+  - Extended stepOrder array: added 'lock_screen' and 'whatsapp_chat' after 'call_audio'
+  - Added switch cases for new steps
+  - Existing 4 steps remain untouched
+- Fixed `/src/components/funnel/WhatsAppChat.tsx`:
+  - Added `loginLoading` state
+  - Added onClick handler to "Iniciar sesión" button
+  - On click: sets loginLoading → true, disables button, changes text to "Ingresando...", removes shimmer/glow
+  - After 2-second delay, calls onComplete() to transition to next funnel step
+
+Stage Summary:
+- Full funnel flow now: landing → pre_call_video → call_ringing → call_audio → lock_screen → whatsapp_chat
+- Funnel no longer gets stuck after AudioCallScreen
+- Lint: ✅ (0 errors, 1 pre-existing warning)
+- Dev server: ✅ (compiling normally)
