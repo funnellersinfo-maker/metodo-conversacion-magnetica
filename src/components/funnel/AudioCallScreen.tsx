@@ -343,16 +343,14 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Contenedor invisible casi al borde, palabras completas === */}
+      {/* === TELEPROMPTER — CAJA INVISIBLE que FUERZA al texto a quedarse dentro === */}
       <div
         className="relative z-10 mt-4 flex-1"
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           minHeight: 0,
-          width: '100%',
-          boxSizing: 'border-box',
-          padding: '0 3%',
         }}
       >
         {/* Subtle glow behind text */}
@@ -363,12 +361,16 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           pointerEvents: 'none',
         }} />
 
-        {/* Invisible container — casi al borde del móvil (94% del ancho) */}
+        {/*
+          CONTENEDOR INVISIBLE — Usa vw (viewport width) que es ABSOLUTO e INAMOVIBLE.
+          94vw = 94% del ancho de la pantalla del móvil. El texto NUNCA puede salirse.
+          overflow:hidden como red de seguridad — si algo se desborda, no se ve.
+        */}
         <div style={{
-          width: '100%',
+          width: '94vw',
           maxWidth: '420px',
-          margin: '0 auto',
           textAlign: 'center',
+          overflow: 'hidden',
           boxSizing: 'border-box',
         }}>
           <AnimatePresence mode="wait">
@@ -388,12 +390,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   letterSpacing: '0.02em',
                   textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                   margin: 0,
-                  // BULLETPROOF WRAPPING: wrap at word boundaries first,
-                  // break within word ONLY as absolute last resort
+                  width: '100%',
+                  // Wrap en límites de palabra, romper dentro de palabra solo como último recurso
                   whiteSpace: 'normal',
                   wordWrap: 'break-word',
                   overflowWrap: 'break-word',
-                  maxWidth: '100%',
                   boxSizing: 'border-box',
                 }}
               >
