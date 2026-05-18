@@ -343,13 +343,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Frases con word-reveal, sin clip en móvil === */}
+      {/* === TELEPROMPTER — Contenedor invisible casi al borde, palabras completas === */}
       <motion.div
         className="relative z-10 mt-4 w-full flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.4 }}
-        style={{ minHeight: 0, padding: '0 24px' }}
+        style={{ minHeight: 0, padding: '0 8px' }}
       >
         {/* Subtle glow behind text */}
         <div style={{
@@ -359,10 +359,16 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           pointerEvents: 'none',
         }} />
 
+        {/* Invisible container — casi al borde del móvil, suficiente espacio para que nada se corte */}
         <div style={{
-          width: '100%',
+          width: 'calc(100% - 12px)',
+          maxWidth: '420px',
           textAlign: 'center',
           padding: '8px 0',
+          // Invisible al ojo — sin bordes, sin fondo
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
         }}>
           <AnimatePresence mode="wait">
             {activeCaption && (
@@ -381,7 +387,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   letterSpacing: '0.02em',
                   textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                   margin: 0,
-                  // CRITICAL: wrap natural, NUNCA cortar palabras — baja completa a la siguiente línea
+                  // CRITICAL: wrap natural en espacios reales, NUNCA cortar palabras
                   whiteSpace: 'normal',
                   wordBreak: 'keep-all',
                   overflowWrap: 'normal',
@@ -396,15 +402,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                       style={{
                         opacity: isVisible ? 1 : 0,
                         transition: 'opacity 0.3s ease, color 0.4s ease, text-shadow 0.4s ease',
-                        marginRight: '0.3em',
-                        display: 'inline',
                         color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
                         textShadow: isLatest
                           ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
                           : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                       }}
                     >
-                      {word}
+                      {word}{' '}
                     </span>
                   )
                 })}

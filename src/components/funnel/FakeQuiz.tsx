@@ -25,6 +25,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
   const answeredRef = useRef(false)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
+  const videoReadyRef = useRef(false)
 
   useEffect(() => {
     onCompleteRef.current = onComplete
@@ -35,6 +36,45 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     return () => clearTimeout(timer)
   }, [])
 
+  // ============ PRE-LOAD VIDEO — ensure it's ready to play instantly ============
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    // Explicitly load the video
+    video.load()
+
+    const onCanPlay = () => {
+      videoReadyRef.current = true
+    }
+
+    const onEnded = () => {
+      setVideoEnded(true)
+    }
+
+    video.addEventListener('canplay', onCanPlay)
+    video.addEventListener('canplaythrough', onCanPlay)
+    video.addEventListener('ended', onEnded)
+
+    // Keep-alive: if video was supposed to play but paused, restart it
+    const keepAlive = setInterval(() => {
+      if (video.paused && !video.ended && answeredRef.current && !completedRef.current) {
+        video.play().catch(() => {
+          // Try muted if unmuted fails
+          video.muted = true
+          video.play().catch(() => {})
+        })
+      }
+    }, 500)
+
+    return () => {
+      video.removeEventListener('canplay', onCanPlay)
+      video.removeEventListener('canplaythrough', onCanPlay)
+      video.removeEventListener('ended', onEnded)
+      clearInterval(keepAlive)
+    }
+  }, [])
+
   // ============ HANDLE ANSWER — INSTANT on click ============
   const handleAnswer = useCallback(() => {
     if (answeredRef.current) return
@@ -43,12 +83,37 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
 
     // Play video INMEDIATAMENTE — el usuario ya interactuó, el navegador permite audio
     const video = videoRef.current
-    if (video) {
+    if (!video) return
+
+    // Strategy: try unmuted first, fall back to muted
+    const tryPlay = () => {
       video.muted = false
-      video.play().catch(() => {
-        video.muted = true
-        video.play().catch(() => {})
-      })
+      video.currentTime = 0
+      const playPromise = video.play()
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Unmuted failed — try muted (mobile autoplay policy)
+          video.muted = true
+          video.play().catch(() => {})
+        })
+      }
+    }
+
+    // If video is ready, play immediately
+    if (video.readyState >= 3) {
+      tryPlay()
+    } else {
+      // Wait for video to be ready, then play
+      const onReady = () => {
+        tryPlay()
+        video.removeEventListener('canplay', onReady)
+        video.removeEventListener('canplaythrough', onReady)
+      }
+      video.addEventListener('canplay', onReady)
+      video.addEventListener('canplaythrough', onReady)
+      // Also try immediately in case it works
+      tryPlay()
     }
   }, [])
 
@@ -56,27 +121,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     if (completedRef.current) return
     completedRef.current = true
     onCompleteRef.current()
-  }, [])
-
-  // Video ended → show Continuar
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const onEnded = () => setVideoEnded(true)
-    video.addEventListener('ended', onEnded)
-
-    // Keep-alive
-    const keepAlive = setInterval(() => {
-      if (video.paused && !video.ended && answeredRef.current) {
-        video.play().catch(() => {})
-      }
-    }, 1000)
-
-    return () => {
-      video.removeEventListener('ended', onEnded)
-      clearInterval(keepAlive)
-    }
   }, [])
 
   return (
@@ -87,26 +131,25 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* === VIDEO LAYER — siempre visible y cargado, tapado por el quiz === */}
+      {/* === VIDEO LAYER — siempre visible y cargado, tapado por overlay negro === */}
       <div className="absolute inset-0 z-0">
         <video
           ref={videoRef}
           src="/videos/payaso-vidrio.mp4"
           playsInline
-          webkit-playsinline="true"
           preload="auto"
           className="w-full h-full object-cover"
         />
       </div>
 
       {/* === OVERLAY NEGRO que tapa el video antes de responder === */}
-      {/* Al responder: se desvanece revelando el video debajo del quiz al 50% */}
+      {/* Al responder: se desvanece revelando el video + quiz al 50% */}
       <div
         className="absolute inset-0 z-10"
         style={{
           background: '#000000',
           opacity: answered ? 0 : 1,
-          transition: 'opacity 0.5s ease',
+          transition: 'opacity 0.6s ease',
           pointerEvents: 'none',
         }}
       />
@@ -117,18 +160,17 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         style={{
           background: 'rgba(0, 0, 0, 0.5)',
           opacity: answered ? 1 : 0,
-          transition: 'opacity 0.5s ease',
+          transition: 'opacity 0.6s ease',
           pointerEvents: 'none',
         }}
       />
 
-      {/* === QUIZ CONTENT === */}
+      {/* === QUIZ CONTENT — fades to 50% opacity on answer === */}
       <div
         className="relative z-20 flex-1 flex flex-col items-center justify-center px-5 w-full max-w-lg mx-auto"
         style={{
           opacity: answered ? 0.5 : 1,
-          pointerEvents: answered ? 'none' : 'auto',
-          transition: 'opacity 0.5s ease',
+          transition: 'opacity 0.6s ease',
         }}
       >
         {/* Shield icon */}
@@ -210,13 +252,12 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
           {QUESTION.question}
         </motion.h1>
 
-        {/* Answer buttons */}
+        {/* Answer buttons — SIEMPRE clickeables, incluso después de minutos */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
           {QUESTION.options.map((option, index) => (
             <motion.button
               key={option.letter}
               onClick={handleAnswer}
-              onTouchEnd={(e) => { e.preventDefault(); handleAnswer() }}
               className="relative cursor-pointer overflow-hidden w-full text-left"
               style={{
                 background: 'rgba(34, 34, 34, 0.95)',
@@ -226,6 +267,8 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
+                // Siempre clickeable — nunca se desactiva
+                pointerEvents: 'auto',
               }}
               initial={{ opacity: 0, x: -30 }}
               animate={showContent ? { opacity: 1, x: 0 } : {}}
@@ -272,7 +315,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
             <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.7)' }} />
             <motion.button
               onClick={handleContinue}
-              onTouchEnd={(e) => { e.preventDefault(); handleContinue() }}
               className="relative z-10 cursor-pointer border-none overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
@@ -285,6 +327,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
                 boxShadow: '0 0 30px rgba(211, 47, 47, 0.5), 0 0 60px rgba(211, 47, 47, 0.2)',
+                pointerEvents: 'auto',
               }}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
