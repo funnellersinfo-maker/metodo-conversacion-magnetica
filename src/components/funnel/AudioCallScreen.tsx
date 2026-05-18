@@ -1,23 +1,34 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// Teleprompter captions synced to audio progress (time → text)
+// ============ COPIE EXACTO DE LA LLAMADA — Sincronización Calibrada a 68.28s ============
+// Timestamps convertidos de timecode 24fps a segundos
+// Los huecos entre bloques son INTENCIONALES — coinciden con respiraciones/suspiros del actor
+// NO agregar buffers artificiales — estos tiempos son quirúrgicos
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 5, text: 'Conectando...' },
-  { start: 5, end: 12, text: '¿Alguna vez sentiste que ella te ignoraba sin razón?' },
-  { start: 12, end: 20, text: 'Lo que no sabes es que su cerebro ya decidió en 7 segundos.' },
-  { start: 20, end: 28, text: 'No es tu físico. No es tu dinero. Es tu PATRÓN de conversación.' },
-  { start: 28, end: 36, text: 'El 99% de los hombres usan el mismo formato aburrido...' },
-  { start: 36, end: 44, text: 'Y son archivados en silencio antes de la primera cita.' },
-  { start: 44, end: 52, text: 'Pero existe un cortocircuito biológico...' },
-  { start: 52, end: 60, text: 'Una forma de hackear su atención de inmediato.' },
-  { start: 60, end: 68, text: 'Y lo que viene después... lo cambiará todo.' },
+  { start: 0.83, end: 2.63, text: 'Hey... no cuelgues.' },
+  { start: 3.21, end: 5.42, text: 'Tienes suerte de haber atendido.' },
+  { start: 5.83, end: 9.63, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' },
+  { start: 9.92, end: 13.50, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 14.08, end: 17.42, text: 'Hace años, la atracción era una especie de alquimia.' },
+  { start: 17.75, end: 22.50, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 22.83, end: 24.50, text: 'Pero algo se rompió.' },
+  { start: 24.83, end: 29.42, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' },
+  { start: 29.75, end: 32.63, text: 'que ella ya detecta en menos de 7 segundos.' },
+  { start: 33.08, end: 39.42, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' },
+  { start: 39.83, end: 41.92, text: 'Ella no te ignora porque no le gustes;' },
+  { start: 42.21, end: 46.08, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 46.50, end: 49.21, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 49.63, end: 55.42, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 55.83, end: 61.75, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' },
+  { start: 62.42, end: 64.08, text: 'No cuelgues.' },
+  { start: 64.50, end: 68.28, text: 'El primer capítulo está por desbloquearse.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -27,32 +38,75 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const animFrameRef = useRef<number | null>(null)
   const completedRef = useRef(false)
   const bgStartedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
-  const [activeCaption, setActiveCaption] = useState('Conectando...')
+  const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1)
+  const [callEnded, setCallEnded] = useState(false)
 
-  const handleComplete = useCallback(() => {
-    if (completedRef.current) return
-    completedRef.current = true
-    if (bgAudioRef.current) {
-      bgAudioRef.current.pause()
-      bgAudioRef.current.currentTime = 0
+  // ============ WORD REVEAL — Pausado, cinematográfico, en sync con audio ============
+  const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
+  const words = activeCaption?.text.split(' ') || []
+
+  let visibleWords = 0
+  if (activeCaption) {
+    const totalWords = words.length
+    const captionDuration = activeCaption.end - activeCaption.start
+    const elapsed = currentTime - activeCaption.start
+
+    if (elapsed >= 0) {
+      // Revelar palabras a lo largo del 95% de la duración del bloque
+      // (no 75% como antes — eso era muy rápido)
+      const revealPortion = 0.95
+      const revealTime = captionDuration * revealPortion
+
+      if (elapsed >= revealTime) {
+        visibleWords = totalWords
+      } else {
+        const progress = elapsed / revealTime
+        // Pequeña pausa inicial (5%) antes de empezar a revelar
+        const adjustedProgress = Math.max(0, (progress - 0.05) / 0.95)
+        visibleWords = Math.min(totalWords, Math.ceil(adjustedProgress * totalWords))
+      }
     }
-    onComplete()
+  }
+
+  // Keep onComplete ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete
   }, [onComplete])
 
+  // ============ COMPLETE HANDLER — RED screen + transition ============
+  const triggerComplete = () => {
+    if (completedRef.current) return
+    completedRef.current = true
+
+    if (bgAudioRef.current) {
+      bgAudioRef.current.pause()
+    }
+
+    setCallEnded(true)
+
+    const t1 = setTimeout(() => {
+      onCompleteRef.current()
+    }, 1500)
+    timersRef.current.push(t1)
+  }
+
+  // ============ MAIN AUDIO SETUP ============
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    // === Background music at second 40 ===
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
-    // === Web Audio API for frequency analysis ===
+    // Web Audio API for frequency bars
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -62,7 +116,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       analyser.connect(audioCtx.destination)
       analyserRef.current = analyser
 
-      // Animation loop for frequency data
       const updateFrequency = () => {
         if (analyserRef.current && !completedRef.current) {
           const data = new Uint8Array(analyserRef.current.frequencyBinCount)
@@ -74,7 +127,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       }
       updateFrequency()
     } catch {
-      // Web Audio API not available — frequency bars will use fallback animation
+      // Web Audio API not available
     }
 
     const playAudio = async () => {
@@ -83,22 +136,25 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         await audio.play()
         setIsPlaying(true)
       } catch {
-        // Browser may block
+        // Browser may block autoplay
       }
     }
-
     playAudio()
 
-    const handleEnded = () => handleComplete()
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
+    const handleEnded = () => triggerComplete()
 
-      // Update caption
-      const caption = CAPTIONS.find(c => audio.currentTime >= c.start && audio.currentTime < c.end)
-      if (caption) setActiveCaption(caption.text)
+    const handleTimeUpdate = () => {
+      const t = audio.currentTime
+      setCurrentTime(t)
+
+      // Find active caption
+      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
+      if (idx !== -1 && idx !== activeCaptionIndex) {
+        setActiveCaptionIndex(idx)
+      }
 
       // Start background music at second 40
-      if (!bgStartedRef.current && audio.currentTime >= 40) {
+      if (!bgStartedRef.current && t >= 40) {
         bgStartedRef.current = true
         bgAudio.play().catch(() => {})
       }
@@ -107,6 +163,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
+    // Keep-alive
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
@@ -116,11 +173,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handlePause = () => {
       if (!completedRef.current) {
         setTimeout(() => {
-          if (!audio.ended && !completedRef.current) audio.play().catch(() => {})
+          if (!audio.ended && !completedRef.current) {
+            audio.play().catch(() => {})
+          }
         }, 100)
       }
     }
-
     audio.addEventListener('pause', handlePause)
 
     return () => {
@@ -130,11 +188,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       clearInterval(keepAlive)
       audio.pause()
       bgAudio.pause()
-      bgAudio.currentTime = 0
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      timersRef.current.forEach(t => clearTimeout(t))
+      timersRef.current = []
     }
-  }, [handleComplete])
+  }, [])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -145,11 +204,9 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const audioDuration = 68.28
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
 
-  // SVG circular progress — circumference calculation
   const RING_RADIUS = 52
   const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
-  const ringProgress = (progressPercent / 100) * RING_CIRCUMFERENCE
-  const ringDashOffset = RING_CIRCUMFERENCE - ringProgress
+  const ringDashOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE
 
   return (
     <motion.div
@@ -159,12 +216,71 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
+      {/* === RED "Llamada finalizada" overlay === */}
+      <AnimatePresence>
+        {callEnded && (
+          <motion.div
+            className="absolute inset-0 z-[100] flex flex-col items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #B71C1C, #D32F2F, #C62828)' }} />
+
+            <motion.div
+              style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 20,
+              }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none" style={{ transform: 'rotate(135deg)' }}>
+                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
+              </svg>
+            </motion.div>
+
+            <motion.span
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(1rem, 3.5vw, 1.3rem)',
+                fontWeight: 700, color: '#FFFFFF',
+                letterSpacing: '0.2em', textTransform: 'uppercase',
+                textShadow: '0 2px 20px rgba(0,0,0,0.4)',
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              Llamada finalizada
+            </motion.span>
+
+            <motion.span
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.7rem, 2vw, 0.85rem)',
+                fontWeight: 400, color: 'rgba(255,255,255,0.7)',
+                letterSpacing: '0.1em', marginTop: 8,
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+            >
+              {formatTime(currentTime)}
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Subtle bg glow */}
       <div className="absolute inset-0" style={{
         background: 'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(76, 175, 80, 0.04) 0%, transparent 70%), #0a0a0a',
       }} />
 
-      {/* Scan lines overlay for sci-fi feel */}
+      {/* Scan lines overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
         opacity: 0.5,
@@ -175,7 +291,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
       {/* === TOP: Profile with circular progress ring === */}
       <div className="relative z-10 mt-14 flex flex-col items-center">
-        {/* EN LLAMADA */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,69 +307,30 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           </span>
         </motion.div>
 
-        {/* Profile photo with SVG circular progress */}
         <motion.div
           className="mt-5 relative flex items-center justify-center"
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.6, type: 'spring' }}
         >
-          {/* SVG ring — rotates -90deg so progress starts from top */}
-          <svg
-            width="124" height="124" viewBox="0 0 124 124"
-            style={{ position: 'absolute', transform: 'rotate(-90deg)' }}
-          >
-            {/* Background ring */}
-            <circle
-              cx="62" cy="62" r={RING_RADIUS}
-              fill="none" stroke="rgba(76, 175, 80, 0.1)"
-              strokeWidth="3" strokeLinecap="round"
-            />
-            {/* Progress ring */}
-            <circle
-              cx="62" cy="62" r={RING_RADIUS}
-              fill="none" stroke="#4CAF50"
-              strokeWidth="3" strokeLinecap="round"
-              strokeDasharray={RING_CIRCUMFERENCE}
-              strokeDashoffset={ringDashOffset}
-              style={{
-                transition: 'stroke-dashoffset 0.3s ease',
-                filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))',
-              }}
-            />
-            {/* Glow ring */}
-            <circle
-              cx="62" cy="62" r={RING_RADIUS}
-              fill="none" stroke="rgba(76, 175, 80, 0.15)"
-              strokeWidth="8" strokeLinecap="round"
-              strokeDasharray={RING_CIRCUMFERENCE}
-              strokeDashoffset={ringDashOffset}
-              style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-            />
+          <svg width="124" height="124" viewBox="0 0 124 124" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+            <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.1)" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="#4CAF50" strokeWidth="3" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease', filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))' }} />
+            <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.15)" strokeWidth="8" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease' }} />
           </svg>
 
-          {/* Profile photo */}
           <div style={{
-            width: '88px', height: '88px', borderRadius: '50%',
-            overflow: 'hidden',
+            width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden',
             boxShadow: '0 0 25px rgba(76, 175, 80, 0.2), 0 0 50px rgba(76, 175, 80, 0.1)',
           }}>
-            <img src="/images/dante-profile.jpg" alt="Dante"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/images/dante-profile.jpg" alt="Dante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </motion.div>
 
-        {/* Name */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.5 }}>
           <h1 style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: 'clamp(1.2rem, 4.5vw, 1.5rem)',
-            fontWeight: 700, color: '#FFFFFF',
-            letterSpacing: '0.18em', marginTop: '0.75rem',
+            fontFamily: "'Cinzel', serif", fontSize: 'clamp(1.2rem, 4.5vw, 1.5rem)',
+            fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.18em', marginTop: '0.75rem',
             textShadow: '0 2px 15px rgba(0,0,0,0.8)',
           }}>
             DANTE
@@ -262,138 +338,75 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Matrix green futuristic === */}
-      <motion.div
-        className="relative z-10 mt-6 w-full px-5"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1, duration: 0.8 }}
-      >
+      {/* === TELEPROMPTER — Palabra por palabra, sin overflow === */}
+      {/*
+        ARQUITECTURA:
+        - position:absolute + padding:0 4vw = ancho INAMOVIBLE
+        - overflowWrap:anywhere = NUNCA se sale
+        - .join(' ') para texto ya visible = wrap perfecto en espacios
+        - Última palabra en span propio = efecto glow cinematográfico
+        - Revelado al 95% de la duración (no 75% — era muy rápido)
+      */}
+      <div style={{
+        position: 'absolute',
+        top: '30%',
+        left: 0,
+        right: 0,
+        boxSizing: 'border-box',
+        padding: '0 4vw',
+        zIndex: 10,
+        pointerEvents: 'none',
+      }}>
         <div style={{
-          position: 'relative',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(0, 20, 0, 0.7), rgba(0, 10, 0, 0.9))',
-          border: '1px solid rgba(76, 175, 80, 0.2)',
-          boxShadow: '0 0 30px rgba(76, 175, 80, 0.08), inset 0 0 30px rgba(0, 20, 0, 0.3)',
+          maxWidth: '420px',
+          margin: '0 auto',
+          boxSizing: 'border-box',
         }}>
-          {/* Rotating corner brackets */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-            {/* Top-left bracket */}
-            <div style={{
-              position: 'absolute', top: '6px', left: '6px',
-              width: '20px', height: '20px',
-              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
-              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Top-right bracket */}
-            <div style={{
-              position: 'absolute', top: '6px', right: '6px',
-              width: '20px', height: '20px',
-              borderTop: '2px solid rgba(76, 175, 80, 0.5)',
-              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Bottom-left bracket */}
-            <div style={{
-              position: 'absolute', bottom: '6px', left: '6px',
-              width: '20px', height: '20px',
-              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
-              borderLeft: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Bottom-right bracket */}
-            <div style={{
-              position: 'absolute', bottom: '6px', right: '6px',
-              width: '20px', height: '20px',
-              borderBottom: '2px solid rgba(76, 175, 80, 0.5)',
-              borderRight: '2px solid rgba(76, 175, 80, 0.5)',
-            }} />
-            {/* Rotating scan line */}
-            <motion.div
-              style={{
-                position: 'absolute', left: 0, right: 0,
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.4), transparent)',
-              }}
-              animate={{ top: ['0%', '100%', '0%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-            />
-          </div>
-
-          {/* Header label */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 14px 4px',
-            borderBottom: '1px solid rgba(76, 175, 80, 0.1)',
-          }}>
-            <motion.div
-              style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4CAF50' }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-            <span style={{
-              fontFamily: "'Courier New', monospace",
-              fontSize: '0.55rem', fontWeight: 700,
-              color: 'rgba(76, 175, 80, 0.6)',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
+          {activeCaption && visibleWords > 0 && (
+            <p style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
+              fontWeight: 500,
+              lineHeight: 1.7,
+              letterSpacing: '0.02em',
+              margin: 0,
+              padding: 0,
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              display: 'block',
+              width: '100%',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}>
-              TRANSCRIPCIÓN EN VIVO
-            </span>
-          </div>
-
-          {/* Caption text */}
-          <div style={{ padding: '12px 16px 14px', minHeight: '60px' }}>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={activeCaption}
-                initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
+              {/* Palabras ya reveladas — TEXTO PLANO con .join para wrap perfecto */}
+              {visibleWords > 1 && (
+                <span style={{
+                  color: 'rgba(76, 175, 80, 0.9)',
+                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                  transition: 'color 0.4s ease',
+                }}>
+                  {words.slice(0, visibleWords - 1).join(' ')}{' '}
+                </span>
+              )}
+              {/* Última palabra — BRILLA con efecto glow cinematográfico */}
+              <span
+                key={`latest-${activeCaptionIndex}-${visibleWords}`}
                 style={{
-                  fontFamily: "'Courier New', monospace",
-                  fontSize: 'clamp(0.72rem, 2.2vw, 0.85rem)',
-                  fontWeight: 400,
-                  color: '#4CAF50',
-                  lineHeight: 1.5,
-                  letterSpacing: '0.03em',
-                  textShadow: '0 0 10px rgba(76, 175, 80, 0.4), 0 0 20px rgba(76, 175, 80, 0.15)',
+                  color: '#66FF66',
+                  textShadow: '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)',
+                  transition: 'color 0.3s ease, text-shadow 0.3s ease',
                 }}
               >
-                {activeCaption}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-
-          {/* Matrix rain effect — tiny falling characters */}
-          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.08 }}>
-            {Array.from({ length: 12 }, (_, i) => (
-              <motion.span
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: `${8 + (i * 8) % 90}%`,
-                  fontSize: '0.5rem',
-                  color: '#4CAF50',
-                  fontFamily: 'monospace',
-                }}
-                animate={{ y: ['-10px', '200px'] }}
-                transition={{
-                  duration: 3 + Math.random() * 4,
-                  repeat: Infinity,
-                  delay: Math.random() * 5,
-                  ease: 'linear',
-                }}
-              >
-                {String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))}
-              </motion.span>
-            ))}
-          </div>
+                {words[visibleWords - 1]}
+              </span>
+            </p>
+          )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* === BOTTOM: Sound bar + time + end call === */}
+      {/* === BOTTOM: Sound bar + time === */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
-        {/* Sound bar — reactive frequency visualization */}
         <div className="flex items-end justify-center gap-[2px]" style={{ height: '32px', marginBottom: '10px' }}>
           {frequencyData.slice(0, 24).map((val, i) => {
             const height = isPlaying ? Math.max(4, (val / 100) * 28) : 4
@@ -401,11 +414,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               <motion.div
                 key={i}
                 style={{
-                  width: '3px',
-                  borderRadius: '2px',
-                  backgroundColor: isPlaying
-                    ? `rgba(76, 175, 80, ${0.4 + (val / 100) * 0.6})`
-                    : 'rgba(76, 175, 80, 0.15)',
+                  width: '3px', borderRadius: '2px',
+                  backgroundColor: isPlaying ? `rgba(76, 175, 80, ${0.4 + (val / 100) * 0.6})` : 'rgba(76, 175, 80, 0.15)',
                   height,
                   boxShadow: val > 50 ? `0 0 4px rgba(76, 175, 80, 0.3)` : 'none',
                 }}
@@ -416,57 +426,28 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           })}
         </div>
 
-        {/* Elapsed time + progress track */}
         <div className="w-full">
           <div className="flex justify-start mb-2">
             <span style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 'clamp(0.65rem, 2vw, 0.78rem)',
-              fontWeight: 600, color: '#4CAF50',
-              letterSpacing: '0.05em',
-              fontVariantNumeric: 'tabular-nums',
-              textShadow: '0 0 8px rgba(76, 175, 80, 0.2)',
+              fontFamily: "'Cinzel', serif", fontSize: 'clamp(0.65rem, 2vw, 0.78rem)',
+              fontWeight: 600, color: '#4CAF50', letterSpacing: '0.05em',
+              fontVariantNumeric: 'tabular-nums', textShadow: '0 0 8px rgba(76, 175, 80, 0.2)',
             }}>
               {formatTime(currentTime)}
             </span>
           </div>
 
-          {/* Progress track */}
-          <div style={{
-            width: '100%', height: '3px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            borderRadius: '2px', overflow: 'hidden',
-          }}>
+          <div style={{ width: '100%', height: '3px', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '2px', overflow: 'hidden' }}>
             <motion.div
               style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, #1B5E20, #4CAF50)',
-                borderRadius: '2px',
-                width: `${progressPercent}%`,
+                height: '100%', background: 'linear-gradient(90deg, #1B5E20, #4CAF50)',
+                borderRadius: '2px', width: `${progressPercent}%`,
                 boxShadow: '0 0 6px rgba(76, 175, 80, 0.3)',
               }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.3 }}
             />
           </div>
-        </div>
-
-        {/* End call button */}
-        <div className="flex justify-center mt-5">
-          <button onClick={handleComplete}
-            className="cursor-pointer border-none bg-transparent flex items-center justify-center">
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(211, 47, 47, 0.35), 0 4px 14px rgba(0,0,0,0.3)',
-              transform: 'rotate(135deg)',
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white" stroke="none">
-                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-              </svg>
-            </div>
-          </button>
         </div>
       </div>
     </motion.div>
