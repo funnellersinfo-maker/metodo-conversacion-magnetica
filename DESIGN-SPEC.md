@@ -33,29 +33,29 @@
 - SIN buffers artificiales — los timestamps son exactos
 - **Font size aumentado ~2%**: `clamp(0.632rem, 2.45vw, 0.836rem)`
 - **Line height**: 1.5 para mejor legibilidad
-- audioDuration actualizado a 75.0s (último caption termina en 75s)
+- audioDuration actualizado a 68.28s (último caption termina exactamente al final del audio)
 
-#### COPIE EXACTO DE LA LLAMADA (17 bloques):
+#### COPIE EXACTO DE LA LLAMADA (17 bloques) — Calibrado a 68.28s:
 ```
- 1. [1.08s - 3.62s]  Hey... no cuelgues.
- 2. [4.08s - 6.41s]  Tienes suerte de haber atendido.
- 3. [6.83s - 11.20s] La mayoría de los hombres están ahí fuera, gritando por atención,
- 4. [11.62s - 15.83s] y tú... tú acabas de entrar en la frecuencia correcta.
- 5. [16.41s - 20.00s] Hace años, la atracción era una especie de alquimia.
- 6. [20.50s - 25.91s] Había misterio, había silencios que decían más que mil palabras.
- 7. [26.20s - 28.20s] Pero algo se rompió.
- 8. [28.83s - 33.41s] El mundo se llenó de plantillas baratas y frases de "copia y pega"
- 9. [33.75s - 36.83s] que ella ya detecta en menos de 7 segundos.
-10. [37.20s - 43.75s] Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.
-11. [44.20s - 46.91s] Ella no te ignora porque no le gustes;
-12. [47.20s - 51.41s] te ignora porque ya sabe exactamente qué vas a decir después.
-13. [51.91s - 54.83s] Eres un eco más en su bandeja de entrada.
-14. [55.20s - 61.62s] Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.
-15. [62.20s - 68.83s] Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.
-16. [69.41s - 71.20s] No cuelgues.
-17. [71.83s - 75.00s] El primer capítulo está por desbloquearse.
+ 1. [0.83s - 2.63s]   Hey... no cuelgues.
+ 2. [3.21s - 5.42s]   Tienes suerte de haber atendido.
+ 3. [5.83s - 9.63s]   La mayoría de los hombres están ahí fuera, gritando por atención,
+ 4. [9.92s - 13.50s]  y tú... tú acabas de entrar en la frecuencia correcta.
+ 5. [14.08s - 17.42s] Hace años, la atracción era una especie de alquimia.
+ 6. [17.75s - 22.50s] Había misterio, había silencios que decían más que mil palabras.
+ 7. [22.83s - 24.50s] Pero algo se rompió.
+ 8. [24.83s - 29.42s] El mundo se llenó de plantillas baratas y frases de "copia y pega"
+ 9. [29.75s - 32.63s] que ella ya detecta en menos de 7 segundos.
+10. [33.08s - 39.42s] Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.
+11. [39.83s - 41.92s] Ella no te ignora porque no le gustes;
+12. [42.21s - 46.08s] te ignora porque ya sabe exactamente qué vas a decir después.
+13. [46.50s - 49.21s] Eres un eco más en su bandeja de entrada.
+14. [49.63s - 55.42s] Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.
+15. [55.83s - 61.75s] Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.
+16. [62.42s - 64.08s] No cuelgues.
+17. [64.50s - 68.28s] El primer capítulo está por desbloquearse.
 ```
-⚠️ NOTA: Audio actual mide 68.28s en ffprobe pero los timestamps van hasta 75s. Si el audio se corta antes, los últimos bloques no se mostrarán. Puede que haga falta reemplazar el audio con la versión completa de 75s.
+Audio duration: 68.28s — último caption termina exactamente al final del audio.
 
 ### FakeQuiz — SESION 4 FIX
 - **"1/5 PREGUNTAS"** añadido debajo de "VERIFICACIÓN DE ACCESO" — engaña al ojo

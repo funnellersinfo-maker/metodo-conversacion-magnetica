@@ -7,27 +7,28 @@ interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// ============ COPIE EXACTO DE LA LLAMADA — Sincronización Quirúrgica ============
-// Timestamps calculados del audio real de Dante (24fps timecode → segundos)
+// ============ COPIE EXACTO DE LA LLAMADA — Sincronización Calibrada a 68.28s ============
+// Timestamps convertidos de timecode 24fps a segundos
 // Los huecos entre bloques son INTENCIONALES — coinciden con respiraciones/suspiros del actor
+// NO agregar buffers artificiales — estos tiempos son quirúrgicos
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 1.08, end: 3.62, text: 'Hey... no cuelgues.' },
-  { start: 4.08, end: 6.41, text: 'Tienes suerte de haber atendido.' },
-  { start: 6.83, end: 11.20, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' },
-  { start: 11.62, end: 15.83, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' },
-  { start: 16.41, end: 20.00, text: 'Hace años, la atracción era una especie de alquimia.' },
-  { start: 20.50, end: 25.91, text: 'Había misterio, había silencios que decían más que mil palabras.' },
-  { start: 26.20, end: 28.20, text: 'Pero algo se rompió.' },
-  { start: 28.83, end: 33.41, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' },
-  { start: 33.75, end: 36.83, text: 'que ella ya detecta en menos de 7 segundos.' },
-  { start: 37.20, end: 43.75, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' },
-  { start: 44.20, end: 46.91, text: 'Ella no te ignora porque no le gustes;' },
-  { start: 47.20, end: 51.41, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' },
-  { start: 51.91, end: 54.83, text: 'Eres un eco más en su bandeja de entrada.' },
-  { start: 55.20, end: 61.62, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
-  { start: 62.20, end: 68.83, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' },
-  { start: 69.41, end: 71.20, text: 'No cuelgues.' },
-  { start: 71.83, end: 75.00, text: 'El primer capítulo está por desbloquearse.' },
+  { start: 0.83, end: 2.63, text: 'Hey... no cuelgues.' },                        // 00:00:20 → 00:02:15
+  { start: 3.21, end: 5.42, text: 'Tienes suerte de haber atendido.' },            // 00:03:05 → 00:05:10
+  { start: 5.83, end: 9.63, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' }, // 00:05:20 → 00:09:15
+  { start: 9.92, end: 13.50, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' }, // 00:09:22 → 00:13:12
+  { start: 14.08, end: 17.42, text: 'Hace años, la atracción era una especie de alquimia.' }, // 00:14:02 → 00:17:10
+  { start: 17.75, end: 22.50, text: 'Había misterio, había silencios que decían más que mil palabras.' }, // 00:17:18 → 00:22:12
+  { start: 22.83, end: 24.50, text: 'Pero algo se rompió.' },                      // 00:22:20 → 00:24:12
+  { start: 24.83, end: 29.42, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' }, // 00:24:20 → 00:29:10
+  { start: 29.75, end: 32.63, text: 'que ella ya detecta en menos de 7 segundos.' }, // 00:29:18 → 00:32:15
+  { start: 33.08, end: 39.42, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' }, // 00:33:02 → 00:39:10
+  { start: 39.83, end: 41.92, text: 'Ella no te ignora porque no le gustes;' },   // 00:39:20 → 00:41:22
+  { start: 42.21, end: 46.08, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' }, // 00:42:05 → 00:46:02
+  { start: 46.50, end: 49.21, text: 'Eres un eco más en su bandeja de entrada.' }, // 00:46:12 → 00:49:05
+  { start: 49.63, end: 55.42, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' }, // 00:49:15 → 00:55:10
+  { start: 55.83, end: 61.75, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' }, // 00:55:20 → 01:01:18
+  { start: 62.42, end: 64.08, text: 'No cuelgues.' },                              // 01:02:10 → 01:04:02
+  { start: 64.50, end: 68.28, text: 'El primer capítulo está por desbloquearse.' }, // 01:04:12 → 01:08:07
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -203,7 +204,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const audioDuration = 75.0
+  const audioDuration = 68.28
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
 
   const RING_RADIUS = 52
