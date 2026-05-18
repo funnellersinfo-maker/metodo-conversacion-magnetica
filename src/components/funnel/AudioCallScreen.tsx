@@ -349,13 +349,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
       {/* === TELEPROMPTER — word by word slow reveal === */}
       <motion.div
-        className="relative z-10 mt-4 w-full px-6 flex-1 flex items-center justify-center"
+        className="relative z-10 mt-4 w-full px-4 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.4 }}
         style={{ minHeight: 0 }}
       >
-        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '12px 0', transform: 'translateZ(0)' }}>
+        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '8px 4px', transform: 'translateZ(0)', wordBreak: 'break-word' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           
@@ -368,11 +368,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               transition={{ duration: 0.4 }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.82rem, 2.8vw, 1rem)',
+                fontSize: 'clamp(0.72rem, 2.2vw, 0.9rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
                 lineHeight: 1.8,
-                letterSpacing: '0.04em',
+                letterSpacing: '0.01em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
                 willChange: 'opacity',
                 transform: 'translateZ(0)',
