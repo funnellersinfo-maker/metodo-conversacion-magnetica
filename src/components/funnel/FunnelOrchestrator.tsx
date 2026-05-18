@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
@@ -40,13 +40,17 @@ const stepOrder: FunnelStep[] = [
 export function FunnelOrchestrator() {
   const [currentStep, setCurrentStep] = useState<FunnelStep>('landing')
 
-  const goToNextStep = () => {
-    const currentIndex = stepOrder.indexOf(currentStep)
-    const nextIndex = currentIndex + 1
-    if (nextIndex < stepOrder.length) {
-      setCurrentStep(stepOrder[nextIndex])
-    }
-  }
+  // Use useCallback with functional state update to avoid stale closures
+  const goToNextStep = useCallback(() => {
+    setCurrentStep(prev => {
+      const currentIndex = stepOrder.indexOf(prev)
+      const nextIndex = currentIndex + 1
+      if (nextIndex < stepOrder.length) {
+        return stepOrder[nextIndex]
+      }
+      return prev
+    })
+  }, [])
 
   const renderStep = () => {
     switch (currentStep) {

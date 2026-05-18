@@ -8,7 +8,7 @@ interface AudioCallScreenProps {
 }
 
 // Teleprompter captions — synced with audio at REAL TIME
-// Text appears WORD BY WORD at the pace of the narration
+// Text appears word by word at a SLOW, readable pace
 const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 0, end: 1.5, text: 'Conectando...' },
   { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
@@ -37,6 +37,14 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const animFrameRef = useRef<number | null>(null)
   const completedRef = useRef(false)
   const bgStartedRef = useRef(false)
+  const activeCaptionRef = useRef(0)
+  const onCompleteRef = useRef(onComplete)
+
+  // Keep onComplete ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
@@ -44,12 +52,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [visibleWords, setVisibleWords] = useState(0)
   const [callEnded, setCallEnded] = useState(false)
   const [fadeToBlack, setFadeToBlack] = useState(false)
-  const wordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const prevCaptionIndexRef = useRef(0)
 
   const currentCaption = CAPTIONS[activeCaptionIndex]
   const words = currentCaption ? currentCaption.text.split(' ') : []
 
+  // Stable handleComplete — uses ref so it never causes re-renders
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
     completedRef.current = true
@@ -57,55 +64,27 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudioRef.current.pause()
       bgAudioRef.current.currentTime = 0
     }
-    if (wordTimerRef.current) clearInterval(wordTimerRef.current)
     setCallEnded(true)
     setTimeout(() => {
       setFadeToBlack(true)
     }, 2500)
     setTimeout(() => {
-      onComplete()
+      onCompleteRef.current()
     }, 4000)
-  }, [onComplete])
+  }, [])
 
-  // Word-by-word reveal effect
-  useEffect(() => {
-    if (activeCaptionIndex !== prevCaptionIndexRef.current) {
-      prevCaptionIndexRef.current = activeCaptionIndex
-      setVisibleWords(0)
-
-      if (wordTimerRef.current) clearInterval(wordTimerRef.current)
-
-      const caption = CAPTIONS[activeCaptionIndex]
-      if (!caption) return
-
-      const totalWords = caption.text.split(' ').length
-      const duration = (caption.end - caption.start) * 1000 // ms
-      // Each word appears with a delay calculated from the caption duration
-      // We add a small initial delay (300ms) before the first word appears
-      const initialDelay = 300
-      const wordDelay = Math.max(150, (duration - initialDelay) / totalWords)
-
-      let wordCount = 0
-      wordTimerRef.current = setInterval(() => {
-        wordCount++
-        if (wordCount <= totalWords) {
-          setVisibleWords(wordCount)
-        } else {
-          if (wordTimerRef.current) clearInterval(wordTimerRef.current)
-        }
-      }, wordDelay)
-    }
-  }, [activeCaptionIndex])
-
+  // ============ MAIN AUDIO SETUP — runs ONLY ONCE ============
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
+    // Background music
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
+    // Web Audio API for frequency visualization
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -129,6 +108,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       // Web Audio API not available
     }
 
+    // Play audio
     const playAudio = async () => {
       try {
         audio.volume = 1.0
@@ -138,16 +118,19 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         // Browser may block
       }
     }
-
     playAudio()
 
+    // Event: audio ended
     const handleEnded = () => handleComplete()
+
+    // Event: time update — track captions and time
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime)
 
-      // Find current caption index
+      // Find current caption using REF to avoid re-running this effect
       const captionIndex = CAPTIONS.findIndex(c => audio.currentTime >= c.start && audio.currentTime < c.end)
-      if (captionIndex !== -1 && captionIndex !== activeCaptionIndex) {
+      if (captionIndex !== -1 && captionIndex !== activeCaptionRef.current) {
+        activeCaptionRef.current = captionIndex
         setActiveCaptionIndex(captionIndex)
       }
 
@@ -161,6 +144,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
+    // Keep-alive: if audio pauses unexpectedly, resume it
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
@@ -174,7 +158,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         }, 100)
       }
     }
-
     audio.addEventListener('pause', handlePause)
 
     return () => {
@@ -187,9 +170,37 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudio.currentTime = 0
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
-      if (wordTimerRef.current) clearInterval(wordTimerRef.current)
     }
-  }, [handleComplete, activeCaptionIndex])
+  }, [])  // <-- EMPTY dependency array: runs only ONCE
+
+  // ============ WORD-BY-WORD REVEAL — separate from audio ============
+  useEffect(() => {
+    const caption = CAPTIONS[activeCaptionIndex]
+    if (!caption) return
+
+    setVisibleWords(0)
+
+    const totalWords = caption.text.split(' ').length
+    const durationMs = (caption.end - caption.start) * 1000
+
+    // Slow, readable pace: 
+    // - 500ms initial delay before first word
+    // - Each word gets ample time (minimum 380ms, scaled by duration)
+    const initialDelay = 500
+    const wordDelay = Math.max(380, (durationMs - initialDelay) / totalWords)
+
+    let wordCount = 0
+    const timer = setInterval(() => {
+      wordCount++
+      if (wordCount <= totalWords) {
+        setVisibleWords(wordCount)
+      } else {
+        clearInterval(timer)
+      }
+    }, wordDelay)
+
+    return () => clearInterval(timer)
+  }, [activeCaptionIndex])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -361,7 +372,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.3s ease',
+                    transition: 'opacity 0.5s ease',
                     marginRight: '0.3em',
                     display: 'inline',
                   }}
