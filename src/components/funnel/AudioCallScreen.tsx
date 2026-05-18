@@ -47,22 +47,27 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1)
   const [callEnded, setCallEnded] = useState(false)
 
-  // ============ PURE TIME-BASED — ONE WORD AT A TIME ============
-  // Cada caption se divide en palabras, se muestra UNA a la vez centrada
-  // Imposible que se corte — solo hay una palabra en pantalla
+  // ============ PURE TIME-BASED WORD REVEAL ============
+  // Las palabras van apareciendo dentro de cada frase, la frase se wrappea natural
   const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
   const words = activeCaption?.text.split(' ') || []
 
-  // Compute which single word index should be visible
-  let currentWordIndex = -1
+  let visibleWords = 0
   if (activeCaption) {
     const totalWords = words.length
     const captionDuration = activeCaption.end - activeCaption.start
     const elapsed = currentTime - activeCaption.start
 
-    if (elapsed >= 0 && totalWords > 0) {
-      const progress = Math.min(elapsed / captionDuration, 1)
-      currentWordIndex = Math.min(Math.floor(progress * totalWords), totalWords - 1)
+    if (elapsed >= 0) {
+      const revealPortion = 0.75
+      const revealTime = captionDuration * revealPortion
+
+      if (elapsed >= revealTime) {
+        visibleWords = totalWords
+      } else {
+        const progress = elapsed / revealTime
+        visibleWords = Math.min(totalWords, Math.ceil(progress * totalWords))
+      }
     }
   }
 
@@ -338,55 +343,75 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — One word at a time, centered, cinematic === */}
+      {/* === TELEPROMPTER — Frases con word-reveal, sin clip en móvil === */}
       <motion.div
         className="relative z-10 mt-4 w-full flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.4 }}
-        style={{ minHeight: 0 }}
+        style={{ minHeight: 0, padding: '0 24px' }}
       >
-        {/* Subtle glow behind text area */}
+        {/* Subtle glow behind text */}
         <div style={{
           position: 'absolute',
-          inset: '15% 10%',
+          inset: '15% 5%',
           background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(76, 175, 80, 0.03) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
 
         <div style={{
           width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 16px',
-          minHeight: '3.5em',
+          textAlign: 'center',
+          padding: '8px 0',
         }}>
-          {activeCaption && currentWordIndex >= 0 && words[currentWordIndex] && (
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={`${activeCaptionIndex}-${currentWordIndex}`}
-                initial={{ opacity: 0, scale: 0.85, filter: 'blur(8px)' }}
-                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, scale: 1.05, filter: 'blur(4px)' }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
+          <AnimatePresence mode="wait">
+            {activeCaption && (
+              <motion.p
+                key={activeCaptionIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 style={{
                   fontFamily: "'Cinzel', serif",
-                  fontSize: 'clamp(1.1rem, 4.5vw, 1.6rem)',
-                  fontWeight: 600,
-                  color: '#66FF66',
-                  textShadow: '0 0 10px rgba(102, 255, 102, 0.6), 0 0 25px rgba(76, 175, 80, 0.3), 0 0 50px rgba(76, 175, 80, 0.15)',
-                  letterSpacing: '0.04em',
-                  textAlign: 'center',
-                  display: 'block',
-                  lineHeight: 1.2,
-                  willChange: 'opacity, transform, filter',
+                  fontSize: 'clamp(0.78rem, 3.2vw, 1.05rem)',
+                  fontWeight: 500,
+                  color: 'rgba(76, 175, 80, 0.9)',
+                  lineHeight: 1.7,
+                  letterSpacing: '0.02em',
+                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                  margin: 0,
+                  // CRITICAL: allow natural wrapping, no overflow hidden, no nowrap
+                  whiteSpace: 'normal',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  hyphens: 'auto',
                 }}
               >
-                {words[currentWordIndex]}
-              </motion.span>
-            </AnimatePresence>
-          )}
+                {words.map((word, i) => {
+                  const isVisible = i < visibleWords
+                  const isLatest = isVisible && i === visibleWords - 1
+                  return (
+                    <span
+                      key={i}
+                      style={{
+                        opacity: isVisible ? 1 : 0,
+                        transition: 'opacity 0.3s ease, color 0.4s ease, text-shadow 0.4s ease',
+                        marginRight: '0.3em',
+                        display: 'inline',
+                        color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
+                        textShadow: isLatest
+                          ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4)'
+                          : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                      }}
+                    >
+                      {word}
+                    </span>
+                  )
+                })}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 
