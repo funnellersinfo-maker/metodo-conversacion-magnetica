@@ -58,7 +58,7 @@ export function FunnelOrchestrator() {
       case 4: return <FakeQuiz onComplete={goToNextStep} />
       case 5: return <ClownVideo videoSrc="/videos/payaso-vidrio.mp4" onComplete={goToNextStep} />
       case 6: return <DantePodcast onComplete={goToNextStep} />
-      case 7: return <ClownVideo videoSrc="/videos/payaso-completo.mp4" showSoundPrompt onComplete={goToNextStep} />
+      case 7: return <ClownVideo videoSrc="/videos/payaso-completo-final.mp4" showSoundPrompt onComplete={goToNextStep} />
       case 8: return <LockScreenNotification onOpen={goToNextStep} />
       case 9: return <WhatsAppChat onComplete={goToNextStep} />
       default: return null

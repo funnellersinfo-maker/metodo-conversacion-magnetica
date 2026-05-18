@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Método Conversación Magnética | Dante",
-  description: "El cortocircuito biológico para hackear su atención de inmediato.",
+  metadataBase: new URL("https://metodo-dante.pages.dev"),
+  title: "Método Magnético | Dante — El Cortocircuito",
+  description: "Descubre el sistema biológico que ella no puede ignorar. El método que habla directamente a su instinto.",
   icons: { icon: "/favicon.ico" },
   openGraph: {
-    title: "Método Conversación Magnética",
-    description: "El cortocircuito biológico para hackear su atención de inmediato.",
+    title: "Método Magnético | Dante",
+    description: "Descubre el sistema biológico que ella no puede ignorar. El método que habla directamente a su instinto.",
+    url: "https://metodo-dante.pages.dev",
     type: "website",
+    images: [{ url: "/images/dante-profile.jpg", width: 400, height: 400 }],
   },
 };
 
