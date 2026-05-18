@@ -128,3 +128,52 @@ Stage Summary:
 - All audio/image assets in place
 - Teleprompter centered, faster, mobile-optimized
 - Deployed: https://metodo-magnetico-dante.pages.dev
+
+---
+Task ID: FULL-FUNNEL-RESTORE
+Agent: Main Agent
+Task: Restore complete funnel with ALL missing steps per user's specification
+
+Work Log:
+- Audited git history and all files to understand original funnel structure
+- Found missing steps: Quiz, Clown short video, Podcast, Clown full video
+- Found video assets in upload folder: VIDEO VIDRIO ROTO.mp4, VIDEO DEL PAYASO VOL.1.mp4
+- Fixed AudioCallScreen.tsx:
+  - Removed broken typewriter effect (was too fast, cursor blink broken)
+  - Restored simple caption display with slow 0.8s fade transitions
+  - Added "Llamada finalizada" overlay after call ends (2.5s display)
+  - Added fade-to-black transition (1.5s) before next step
+  - Captions sync at real-time with audio (1.0x, not accelerated)
+- Created FakeQuiz.tsx:
+  - "1/5 PREGUNTAS" counter with green glow
+  - Dramatic question with "atracción" highlighted in green
+  - 3 answer buttons with magic shimmer/destello effect
+  - Any click → dims 50% → calls onComplete after 0.5s
+- Created DantePodcast.tsx:
+  - Spotify/podcast player with dante-profile.jpg cover
+  - "MÉTODO MAGNÉTICO / Capítulo 1 — El Cortocircuito"
+  - Green progress bar with time display
+  - Play/Pause button with rotating conic shimmer before first play
+  - Heart/Like button: unfilled with breathing glow → fills red with spring scale on click
+  - Auto-plays, calls onComplete 1.5s after audio ends
+- Created ClownVideo.tsx:
+  - Two variants via props: showSoundPrompt (long video) vs short video
+  - Fullscreen video, object-cover for mobile optimization
+  - "ACTIVAR SONIDO" button with green pulsing glow + shimmer sweep
+  - On sound activation: restarts from 0, unmutes, hides prompt
+  - Stall/pause recovery + keep-alive interval
+- Updated FunnelOrchestrator.tsx:
+  - Added all new steps: quiz, clown_short, podcast, clown_full
+  - Full flow: landing → pre_call_video → call_ringing → call_audio → quiz → clown_short → podcast → clown_full → lock_screen → whatsapp_chat
+- Copied video assets:
+  - upload/VIDEO VIDRIO ROTO.mp4 → public/videos/payaso-vidrio.mp4
+  - upload/VIDEO DEL PAYASO VOL.1.mp4 → public/videos/payaso-completo.mp4
+- Fixed ClownVideo styled-jsx → regular <style> tag
+- Lint: ✅ (0 errors, 1 pre-existing warning)
+
+Stage Summary:
+- Complete 10-step funnel restored and functional
+- All new components have magic shimmer/destello effects on buttons
+- Call-ended transition prevents jarring jump to WhatsApp
+- Video assets copied (not optimized yet due to ffmpeg timeout — can optimize later)
+- Dev server compiling normally

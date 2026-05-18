@@ -6,16 +6,33 @@ import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
 import CallHook from './CallHook'
 import AudioCallScreen from './AudioCallScreen'
+import FakeQuiz from './FakeQuiz'
+import ClownVideo from './ClownVideo'
+import DantePodcast from './DantePodcast'
 import LockScreenNotification from './LockScreenNotification'
 import WhatsAppChat from './WhatsAppChat'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'lock_screen' | 'whatsapp_chat'
+type FunnelStep = 
+  | 'landing' 
+  | 'pre_call_video' 
+  | 'call_ringing' 
+  | 'call_audio' 
+  | 'quiz' 
+  | 'clown_short' 
+  | 'podcast' 
+  | 'clown_full' 
+  | 'lock_screen' 
+  | 'whatsapp_chat'
 
 const stepOrder: FunnelStep[] = [
   'landing',
   'pre_call_video',
   'call_ringing',
   'call_audio',
+  'quiz',
+  'clown_short',
+  'podcast',
+  'clown_full',
   'lock_screen',
   'whatsapp_chat',
 ]
@@ -41,6 +58,14 @@ export function FunnelOrchestrator() {
         return <CallHook onAnswer={goToNextStep} />
       case 'call_audio':
         return <AudioCallScreen onComplete={goToNextStep} />
+      case 'quiz':
+        return <FakeQuiz onComplete={goToNextStep} />
+      case 'clown_short':
+        return <ClownVideo videoSrc="/videos/payaso-vidrio.mp4" onComplete={goToNextStep} />
+      case 'podcast':
+        return <DantePodcast onComplete={goToNextStep} />
+      case 'clown_full':
+        return <ClownVideo videoSrc="/videos/payaso-completo.mp4" showSoundPrompt onComplete={goToNextStep} />
       case 'lock_screen':
         return <LockScreenNotification onOpen={goToNextStep} />
       case 'whatsapp_chat':
