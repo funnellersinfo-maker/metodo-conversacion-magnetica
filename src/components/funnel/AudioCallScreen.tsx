@@ -381,9 +381,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   letterSpacing: '0.02em',
                   textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
                   margin: 0,
-                  // CRITICAL: allow natural wrapping, no overflow hidden, no nowrap
+                  // CRITICAL: wrap natural, NUNCA cortar palabras — baja completa a la siguiente línea
                   whiteSpace: 'normal',
-                  overflowWrap: 'anywhere',
+                  wordBreak: 'keep-all',
+                  overflowWrap: 'normal',
                 }}
               >
                 {words.map((word, i) => {

@@ -7,7 +7,6 @@ interface FakeQuizProps {
   onComplete: () => void
 }
 
-// Pregunta ULTRA FOMO para nicho seducción (solo se muestra 1, las demás son señuelo)
 const QUESTION = {
   question: '¿Cuánto tiempo llevas usando los mismos mensajes que ella ya detecta?',
   options: [
@@ -23,10 +22,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
   const [videoEnded, setVideoEnded] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
-
-  // ============ REFS: Immune to stale closures ============
-  // Todos los estados críticos viven en refs — los botones funcionan
-  // aunque pasen minutos sin interacción
   const answeredRef = useRef(false)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
@@ -35,55 +30,43 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     onCompleteRef.current = onComplete
   }, [onComplete])
 
-  // Entry animation
   useEffect(() => {
     const timer = setTimeout(() => setShowContent(true), 300)
     return () => clearTimeout(timer)
   }, [])
 
-  // ============ HANDLE ANSWER — Parallel actions on click ============
-  // En el microsegundo del clic ejecuta EN PARALELO:
-  // A) Quiz → opacity 0.5 + pointer-events none
-  // B) Video payaso → .play() con audio propio
+  // ============ HANDLE ANSWER — INSTANT on click ============
   const handleAnswer = useCallback(() => {
     if (answeredRef.current) return
     answeredRef.current = true
-
-    // A) Transición inmediata del quiz a 50% opacidad
     setAnswered(true)
 
-    // B) Disparar video de fondo INMEDIATAMENTE
+    // Play video INMEDIATAMENTE — el usuario ya interactuó, el navegador permite audio
     const video = videoRef.current
     if (video) {
-      // Ya hubo interacción real del usuario → el navegador permite audio
       video.muted = false
       video.play().catch(() => {
-        // Fallback remoto: si falla unmuted, intentar muted
         video.muted = true
         video.play().catch(() => {})
       })
     }
   }, [])
 
-  // ============ HANDLE CONTINUE ============
   const handleContinue = useCallback(() => {
     if (completedRef.current) return
     completedRef.current = true
     onCompleteRef.current()
   }, [])
 
-  // ============ VIDEO: ended event → mostrar "Continuar" ============
+  // Video ended → show Continuar
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    const onEnded = () => {
-      setVideoEnded(true)
-    }
-
+    const onEnded = () => setVideoEnded(true)
     video.addEventListener('ended', onEnded)
 
-    // Keep-alive: si el navegador pausa el video, reanudar
+    // Keep-alive
     const keepAlive = setInterval(() => {
       if (video.paused && !video.ended && answeredRef.current) {
         video.play().catch(() => {})
@@ -104,15 +87,8 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* === VIDEO LAYER — payaso rompiendo pantalla === */}
-      {/* Siempre en DOM (preload), se hace visible al responder */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          opacity: answered ? 1 : 0,
-          transition: 'opacity 0.5s ease',
-        }}
-      >
+      {/* === VIDEO LAYER — siempre visible y cargado, tapado por el quiz === */}
+      <div className="absolute inset-0 z-0">
         <video
           ref={videoRef}
           src="/videos/payaso-vidrio.mp4"
@@ -123,17 +99,30 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         />
       </div>
 
-      {/* === 50% TRANSLUCENT OVERLAY after answer === */}
+      {/* === OVERLAY NEGRO que tapa el video antes de responder === */}
+      {/* Al responder: se desvanece revelando el video debajo del quiz al 50% */}
+      <div
+        className="absolute inset-0 z-10"
+        style={{
+          background: '#000000',
+          opacity: answered ? 0 : 1,
+          transition: 'opacity 0.5s ease',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* === 50% TRANSLUCENT OVERLAY after answer (oscurece un poco el video) === */}
       <div
         className="absolute inset-0 z-10"
         style={{
           background: 'rgba(0, 0, 0, 0.5)',
           opacity: answered ? 1 : 0,
           transition: 'opacity 0.5s ease',
+          pointerEvents: 'none',
         }}
       />
 
-      {/* === QUIZ CONTENT — opacity 0.5 + pointer-events none after answer === */}
+      {/* === QUIZ CONTENT === */}
       <div
         className="relative z-20 flex-1 flex flex-col items-center justify-center px-5 w-full max-w-lg mx-auto"
         style={{
@@ -142,7 +131,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
           transition: 'opacity 0.5s ease',
         }}
       >
-        {/* Shield icon — CopyFilms style */}
+        {/* Shield icon */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={showContent ? { opacity: 1, scale: 1 } : {}}
@@ -163,7 +152,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
           </div>
         </motion.div>
 
-        {/* "VERIFICACIÓN DE ACCESO" */}
+        {/* VERIFICACIÓN DE ACCESO */}
         <motion.div
           className="flex items-center gap-3 mb-2"
           initial={{ opacity: 0 }}
@@ -184,7 +173,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
           <div style={{ width: 30, height: 1, background: 'linear-gradient(90deg, #D32F2F, transparent)' }} />
         </motion.div>
 
-        {/* "1/5 PREGUNTAS" — engaña al ojo */}
+        {/* 1/5 PREGUNTAS */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={showContent ? { opacity: 1 } : {}}
@@ -221,7 +210,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
           {QUESTION.question}
         </motion.h1>
 
-        {/* Answer buttons — SIEMPRE interactivos */}
+        {/* Answer buttons */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
           {QUESTION.options.map((option, index) => (
             <motion.button
@@ -243,7 +232,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
               transition={{ duration: 0.5, delay: 0.9 + index * 0.15 }}
               whileTap={{ scale: 0.97, borderColor: 'rgba(211, 47, 47, 0.5)' }}
             >
-              {/* Red letter square */}
               <div style={{
                 width: 30, height: 30,
                 background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
@@ -257,8 +245,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
               }}>
                 {option.letter}
               </div>
-
-              {/* Option text */}
               <span style={{
                 fontFamily: "'Cinzel', serif",
                 fontSize: 'clamp(0.75rem, 2.5vw, 0.88rem)',
@@ -274,7 +260,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         </div>
       </div>
 
-      {/* === "Continuar" BUTTON — solo después de que el video termine === */}
+      {/* === Continuar — después de que el video termine === */}
       <AnimatePresence>
         {videoEnded && (
           <motion.div
@@ -283,10 +269,7 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            {/* Semi-black translucent overlay */}
             <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.7)' }} />
-
-            {/* Botón Continuar — fade in dopamínico */}
             <motion.button
               onClick={handleContinue}
               onTouchEnd={(e) => { e.preventDefault(); handleContinue() }}
