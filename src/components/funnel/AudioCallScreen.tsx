@@ -41,6 +41,9 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [frequencyData, setFrequencyData] = useState<number[]>(Array(24).fill(0))
   const [activeCaption, setActiveCaption] = useState('Conectando...')
+  const [displayedText, setDisplayedText] = useState('')
+  const typewriterRef = useRef<number | null>(null)
+  const prevCaptionRef = useRef('')
 
   const handleComplete = useCallback(() => {
     if (completedRef.current) return
@@ -143,8 +146,37 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudio.currentTime = 0
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (typewriterRef.current) clearInterval(typewriterRef.current)
     }
   }, [handleComplete])
+
+  // === TYPEWRITER EFFECT — reveal text character by character ===
+  useEffect(() => {
+    // If caption changed, start typewriter
+    if (activeCaption !== prevCaptionRef.current) {
+      prevCaptionRef.current = activeCaption
+      // Clear previous typewriter
+      if (typewriterRef.current) clearInterval(typewriterRef.current)
+
+      let charIndex = 0
+      setDisplayedText('')
+
+      // Calculate delay: spread characters evenly across the caption's duration
+      const currentCaption = CAPTIONS.find(c => c.text === activeCaption)
+      const duration = currentCaption ? (currentCaption.end - currentCaption.start) * 1000 : 3000
+      const totalChars = activeCaption.length
+      const delayPerChar = Math.max(40, Math.min(120, duration / totalChars))
+
+      typewriterRef.current = window.setInterval(() => {
+        charIndex++
+        if (charIndex <= activeCaption.length) {
+          setDisplayedText(activeCaption.slice(0, charIndex))
+        } else {
+          if (typewriterRef.current) clearInterval(typewriterRef.current)
+        }
+      }, delayPerChar)
+    }
+  }, [activeCaption])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -295,24 +327,26 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           <AnimatePresence mode="wait">
             <motion.p
               key={activeCaption}
-              initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+              initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.82rem, 2.8vw, 0.95rem)',
+                fontSize: 'clamp(0.88rem, 3vw, 1.05rem)',
                 fontWeight: 500,
-                color: 'rgba(76, 175, 80, 0.9)',
-                lineHeight: 1.6,
-                letterSpacing: '0.03em',
+                color: 'rgba(76, 175, 80, 0.95)',
+                lineHeight: 1.7,
+                letterSpacing: '0.04em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
                 willChange: 'transform, opacity, filter',
                 transform: 'translateZ(0)',
                 WebkitBackfaceVisibility: 'hidden',
+                minHeight: '2.4em',
               }}
             >
-              {activeCaption}
+              {displayedText}
+              <span style={{ opacity: 0.5, animation: 'blink 1s step-end infinite' }}>|</span>
             </motion.p>
           </AnimatePresence>
         </div>
