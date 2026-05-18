@@ -95,3 +95,36 @@ Stage Summary:
 - Funnel no longer gets stuck after AudioCallScreen
 - Lint: ✅ (0 errors, 1 pre-existing warning)
 - Dev server: ✅ (compiling normally)
+
+---
+
+Task ID: FULL-FLOW-FIX
+Agent: Main Agent
+Task: Fix full funnel flow — assets, teleprompter, orchestrator, and deploy
+
+Work Log:
+- Audited entire funnel and found critical issues:
+  1. Missing assets (voice-1.mp3 to voice-5.mp3, wallpapers, notification audio, zyra profile, vibration audio)
+  2. LockScreenNotification component missing
+  3. FunnelOrchestrator only had 4 steps (stopped at call_audio)
+  4. WhatsAppChat never called onComplete after TikTok login
+  5. Teleprompter text not centered, timing too slow, not mobile-optimized
+- Copied and converted voice WAV files to MP3 (VOICE 1-5.wav → voice-1-5.mp3)
+- Copied wallpapers: WALLPAPER CON NOTIFICACIÓN WHATSAPP → wallpaper-lock.jpg, WALLPAPER FONDO CHAT WHATSAPP → wallpaper-chat.jpg
+- Copied notification audio: cfcb7727f0caf23a197c58ef11e08771.aac → whatsapp-notification.aac
+- Copied vibration audio: CELULAR VIBRANDO.aac → vibracion-celular.aac
+- Extracted ZYRA profile from CAPTURA NOTIFICACION.jpg → zyra-profile.jpg
+- Fixed WhatsAppChat image references (zyra-profile.webp → .jpg, wallpaper-whatsapp.jpeg → wallpaper-chat.jpg)
+- Fixed AudioCallScreen teleprompter:
+  - Centered text vertically (flex items-center justify-center)
+  - Sped up caption timing by ~35% (multiplied by 0.65)
+  - Added blur(4px) entry/exit effect for carrete/tubular feel
+  - Added GPU acceleration (transform: translateZ(0), willChange, WebkitBackfaceVisibility)
+  - Reduced animation duration to 0.1s for snappier transitions
+- Built and deployed to Cloudflare Pages
+
+Stage Summary:
+- Full funnel flow now works end-to-end: landing → pre_call_video → call_ringing → call_audio → lock_screen → whatsapp_chat
+- All audio/image assets in place
+- Teleprompter centered, faster, mobile-optimized
+- Deployed: https://metodo-magnetico-dante.pages.dev
