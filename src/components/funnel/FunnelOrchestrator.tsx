@@ -7,33 +7,28 @@ import PreCallVideo from './PreCallVideo'
 import CallHook from './CallHook'
 import AudioCallScreen from './AudioCallScreen'
 import FakeQuiz from './FakeQuiz'
-import ClownVideo from './ClownVideo'
 import DantePodcast from './DantePodcast'
+import ClownVideo from './ClownVideo'
 import LockScreenNotification from './LockScreenNotification'
 import WhatsAppChat from './WhatsAppChat'
 
-// 10 STEP FUNNEL — explicit numeric index, NO string matching
-// 0: landing
+// 9 STEP FUNNEL — quiz now includes clown video internally
+// 0: landing (hook)
 // 1: pre_call_video
 // 2: call_ringing
-// 3: call_audio
-// 4: quiz
-// 5: clown_short
-// 6: podcast
-// 7: clown_full
-// 8: lock_screen
-// 9: whatsapp_chat
+// 3: call_audio (with teleprompter)
+// 4: quiz (includes clown vidrio + CONTINUAR button)
+// 5: podcast
+// 6: clown_full (with sound prompt)
+// 7: lock_screen (WhatsApp notification)
+// 8: whatsapp_chat (audios + TikTok login)
 
-const TOTAL_STEPS = 10
+const TOTAL_STEPS = 9
 
 export function FunnelOrchestrator() {
   const [stepIndex, setStepIndex] = useState(0)
   const transitioningRef = useRef(false)
 
-  // goToNextStep is BULLETPROOF:
-  // - Only advances ONE step at a time
-  // - Has a transition lock to prevent rapid successive calls
-  // - Lock releases after 1 second
   const goToNextStep = useCallback(() => {
     if (transitioningRef.current) return
     transitioningRef.current = true
@@ -43,7 +38,6 @@ export function FunnelOrchestrator() {
       return prev + 1
     })
 
-    // Release lock after 1 second
     setTimeout(() => {
       transitioningRef.current = false
     }, 1000)
@@ -56,11 +50,10 @@ export function FunnelOrchestrator() {
       case 2: return <CallHook onAnswer={goToNextStep} />
       case 3: return <AudioCallScreen onComplete={goToNextStep} />
       case 4: return <FakeQuiz onComplete={goToNextStep} />
-      case 5: return <ClownVideo videoSrc="/videos/payaso-vidrio.mp4" onComplete={goToNextStep} />
-      case 6: return <DantePodcast onComplete={goToNextStep} />
-      case 7: return <ClownVideo videoSrc="/videos/payaso-completo-final.mp4" showSoundPrompt onComplete={goToNextStep} />
-      case 8: return <LockScreenNotification onOpen={goToNextStep} />
-      case 9: return <WhatsAppChat onComplete={goToNextStep} />
+      case 5: return <DantePodcast onComplete={goToNextStep} />
+      case 6: return <ClownVideo videoSrc="/videos/payaso-completo-final.mp4" showSoundPrompt onComplete={goToNextStep} />
+      case 7: return <LockScreenNotification onOpen={goToNextStep} />
+      case 8: return <WhatsAppChat onComplete={goToNextStep} />
       default: return null
     }
   }

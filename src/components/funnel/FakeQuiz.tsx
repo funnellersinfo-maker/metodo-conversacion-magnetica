@@ -1,278 +1,309 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface FakeQuizProps {
   onComplete: () => void
 }
 
-const ANSWERS = [
-  'Sí, estoy listo',
-  'No estoy seguro',
-  'Tal vez',
+// 3 preguntas ULTRA FOMO para nicho seducción
+const QUESTIONS = [
+  {
+    question: '¿Cuánto tiempo llevas usando los mismos mensajes que ella ya detecta?',
+    options: [
+      { letter: 'A', text: 'Semanas — sé que ya no funcionan' },
+      { letter: 'B', text: 'Meses — pero no sé qué más hacer' },
+      { letter: 'C', text: 'Apenas empecé, pero siento que se enfriaron' },
+    ],
+  },
+  {
+    question: '¿Qué pasa cuando ella lee tu mensaje y no responde?',
+    options: [
+      { letter: 'A', text: 'Te quedas esperando sin saber qué hacer' },
+      { letter: 'B', text: 'Le escribes de nuevo pensando que no vio' },
+      { letter: 'C', text: 'Borraste y volviste a escribir algo peor' },
+    ],
+  },
+  {
+    question: '¿Estás listo para ver el sistema que ella no puede ignorar?',
+    options: [
+      { letter: 'A', text: 'Sí, quiero dejar de ser invisible' },
+      { letter: 'B', text: 'No estoy seguro, pero ya no tengo otra opción' },
+      { letter: 'C', text: 'Dime qué tengo que hacer' },
+    ],
+  },
 ]
 
 export default function FakeQuiz({ onComplete }: FakeQuizProps) {
-  const [isExiting, setIsExiting] = useState(false)
   const [showContent, setShowContent] = useState(false)
+  const [answered, setAnswered] = useState(false)
+  const [showVideo, setShowVideo] = useState(false)
+  const [videoEnded, setVideoEnded] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const completedRef = useRef(false)
 
-  // We use a flag to prevent double-clicks
+  useEffect(() => {
+    const timer = setTimeout(() => setShowContent(true), 400)
+    return () => clearTimeout(timer)
+  }, [])
+
   const handleAnswer = useCallback(() => {
-    if (isExiting) return
-    setIsExiting(true)
-    setTimeout(() => onComplete(), 500)
-  }, [isExiting, onComplete])
+    if (answered) return
+    setAnswered(true)
+    // After brief delay, show video behind translucent overlay
+    setTimeout(() => {
+      setShowVideo(true)
+    }, 300)
+  }, [answered])
+
+  const handleVideoEnded = useCallback(() => {
+    setVideoEnded(true)
+  }, [])
+
+  const handleContinue = useCallback(() => {
+    if (completedRef.current) return
+    completedRef.current = true
+    onComplete()
+  }, [onComplete])
+
+  // Auto-play video when shown
+  useEffect(() => {
+    if (!showVideo) return
+    const video = videoRef.current
+    if (!video) return
+
+    video.muted = false
+    const playVideo = async () => {
+      try {
+        await video.play()
+      } catch {
+        video.muted = true
+        await video.play().catch(() => {})
+      }
+    }
+    playVideo()
+
+    const handleEnded = () => handleVideoEnded()
+    video.addEventListener('ended', handleEnded)
+
+    const keepAlive = setInterval(() => {
+      if (video.paused && !video.ended) {
+        video.play().catch(() => {})
+      }
+    }, 1000)
+
+    return () => {
+      video.removeEventListener('ended', handleEnded)
+      clearInterval(keepAlive)
+      video.pause()
+    }
+  }, [showVideo, handleVideoEnded])
 
   return (
-    <AnimatePresence>
-      {!isExiting ? (
-        <motion.div
-          className="fixed inset-0 z-50 flex flex-col items-center select-none overflow-hidden"
-          style={{
-            background: '#0a0a0a',
-            fontFamily: "'Cinzel', serif",
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0.5 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-          onAnimationComplete={() => {
-            if (!showContent) setShowContent(true)
-          }}
-        >
-          {/* Scan lines overlay */}
-          <div
-            className="pointer-events-none absolute inset-0 z-20"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)',
-              opacity: 0.6,
-            }}
-          />
-
-          {/* Vignette */}
-          <div
-            className="pointer-events-none absolute inset-0 z-10"
-            style={{
-              background:
-                'radial-gradient(ellipse 65% 55% at 50% 50%, transparent 20%, rgba(0,0,0,0.7) 100%)',
-            }}
-          />
-
-          {/* Subtle green ambient glow */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(ellipse 60% 40% at 50% 45%, rgba(76,175,80,0.04) 0%, transparent 70%)',
-            }}
-          />
-
-          {/* Film grain */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              opacity: 0.03,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
-              backgroundSize: '128px 128px',
-            }}
-          />
-
-          {/* KEYFRAMES */}
-          <style>{`
-            @keyframes shimmerSweep {
-              0% { transform: translateX(-150%) skewX(-20deg); }
-              100% { transform: translateX(350%) skewX(-20deg); }
-            }
-            @keyframes greenGlow {
-              0%, 100% {
-                box-shadow:
-                  0 0 15px rgba(76,175,80,0.2),
-                  0 0 30px rgba(76,175,80,0.08),
-                  inset 0 0 12px rgba(76,175,80,0.05);
-              }
-              50% {
-                box-shadow:
-                  0 0 25px rgba(76,175,80,0.35),
-                  0 0 50px rgba(76,175,80,0.12),
-                  inset 0 0 18px rgba(76,175,80,0.08);
-              }
-            }
-            @keyframes counterGlow {
-              0%, 100% { text-shadow: 0 0 12px rgba(76,175,80,0.5), 0 0 25px rgba(76,175,80,0.2); }
-              50% { text-shadow: 0 0 20px rgba(76,175,80,0.7), 0 0 40px rgba(76,175,80,0.3); }
-            }
-          `}</style>
-
-          {/* === CONTENT === */}
-          <div className="relative z-30 flex-1 flex flex-col items-center justify-center px-6 text-center max-w-lg mx-auto w-full">
-            {/* Question counter */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={showContent ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-            >
-              <span
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 'clamp(0.7rem, 2.2vw, 0.9rem)',
-                  fontWeight: 600,
-                  color: '#4CAF50',
-                  letterSpacing: '0.25em',
-                  textTransform: 'uppercase',
-                  animation: 'counterGlow 3s ease-in-out infinite',
-                }}
-              >
-                1/5 PREGUNTAS
-              </span>
-            </motion.div>
-
-            {/* Decorative line */}
-            <motion.div
-              initial={{ scaleX: 0, opacity: 0 }}
-              animate={showContent ? { scaleX: 1, opacity: 1 } : {}}
-              transition={{ duration: 0.8, delay: 0.5, ease: 'easeOut' }}
-              className="my-5"
-              style={{
-                width: '60px',
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent, #4CAF50, transparent)',
-                boxShadow: '0 0 8px rgba(76,175,80,0.4)',
-              }}
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center select-none overflow-hidden"
+      style={{ background: '#000000', fontFamily: "'Cinzel', serif" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* === VIDEO LAYER (behind quiz) === */}
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            className="absolute inset-0 z-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <video
+              ref={videoRef}
+              src="/videos/payaso-vidrio.mp4"
+              playsInline
+              preload="auto"
+              className="w-full h-full object-cover"
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Dramatic question */}
+      {/* === 50% TRANSLUCENT OVERLAY after answer === */}
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            className="absolute inset-0 z-10"
+            style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* === QUIZ CONTENT === */}
+      <AnimatePresence>
+        {!videoEnded && (
+          <motion.div
+            className="relative z-20 flex-1 flex flex-col items-center justify-center px-5 w-full max-w-lg mx-auto"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Shield icon — CopyFilms style */}
             <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={showContent ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ duration: 1.2, delay: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={showContent ? { opacity: 1, scale: 1 } : {}}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mb-4"
             >
-              <h1
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 'clamp(1.3rem, 5vw, 2rem)',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
-                  lineHeight: 1.4,
-                  letterSpacing: '0.02em',
-                  textShadow:
-                    '0 2px 20px rgba(0,0,0,0.6), 0 0 40px rgba(76,175,80,0.08)',
-                }}
-              >
-                ¿Estás listo para descubrir la verdad sobre la{' '}
-                <span style={{ color: '#4CAF50', textShadow: '0 0 15px rgba(76,175,80,0.4)' }}>
-                  atracción
-                </span>
-                ?
-              </h1>
+              <div style={{
+                width: '52px', height: '52px',
+                background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
+                borderRadius: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 20px rgba(211, 47, 47, 0.4)',
+              }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 12 11 14 15 10" />
+                </svg>
+              </div>
             </motion.div>
 
-            {/* Answer buttons */}
-            <div className="mt-10 flex flex-col gap-4 w-full max-w-sm">
-              {ANSWERS.map((answer, index) => (
+            {/* "VERIFICACIÓN DE ACCESO" — CopyFilms style with red lines */}
+            <motion.div
+              className="flex items-center gap-3 mb-6"
+              initial={{ opacity: 0 }}
+              animate={showContent ? { opacity: 1 } : {}}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <div style={{ width: 30, height: 1, background: 'linear-gradient(90deg, transparent, #D32F2F)' }} />
+              <span style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.6rem, 2vw, 0.75rem)',
+                fontWeight: 600,
+                color: '#D32F2F',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+              }}>
+                VERIFICACIÓN DE ACCESO
+              </span>
+              <div style={{ width: 30, height: 1, background: 'linear-gradient(90deg, #D32F2F, transparent)' }} />
+            </motion.div>
+
+            {/* Question — large white bold */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={showContent ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
+              className="text-center mb-8 px-2"
+              style={{
+                fontSize: 'clamp(1.1rem, 4.5vw, 1.5rem)',
+                fontWeight: 700,
+                color: '#FFFFFF',
+                lineHeight: 1.4,
+                letterSpacing: '0.01em',
+                textShadow: '0 2px 20px rgba(0,0,0,0.6)',
+              }}
+            >
+              {QUESTIONS[0].question}
+            </motion.h1>
+
+            {/* Answer buttons — CopyFilms style: dark bg, red letter square */}
+            <div className="flex flex-col gap-3 w-full max-w-sm">
+              {QUESTIONS[0].options.map((option, index) => (
                 <motion.button
-                  key={answer}
+                  key={option.letter}
                   onClick={handleAnswer}
-                  className="relative cursor-pointer overflow-hidden"
+                  onTouchEnd={(e) => { e.preventDefault(); handleAnswer() }}
+                  className="relative cursor-pointer overflow-hidden w-full text-left"
                   style={{
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)',
-                    fontWeight: 500,
-                    color: '#FFFFFF',
-                    letterSpacing: '0.06em',
-                    background:
-                      'linear-gradient(135deg, rgba(76,175,80,0.08) 0%, rgba(20,20,20,0.95) 40%, rgba(15,15,15,0.98) 100%)',
-                    border: '1px solid rgba(76,175,80,0.3)',
-                    borderRadius: '6px',
-                    padding: '15px 24px',
-                    animation: 'greenGlow 3s ease-in-out infinite',
-                    animationDelay: `${index * 0.5}s`,
-                    textAlign: 'center',
+                    background: 'rgba(34, 34, 34, 0.95)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 6,
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
                   }}
-                  initial={{ opacity: 0, x: -40 }}
+                  initial={{ opacity: 0, x: -30 }}
                   animate={showContent ? { opacity: 1, x: 0 } : {}}
-                  transition={{
-                    duration: 0.7,
-                    delay: 1.2 + index * 0.2,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                  }}
-                  whileHover={{
-                    borderColor: 'rgba(76,175,80,0.6)',
-                    backgroundColor: 'rgba(76,175,80,0.12)',
-                  }}
-                  whileTap={{ scale: 0.97 }}
+                  transition={{ duration: 0.5, delay: 0.9 + index * 0.15 }}
+                  whileTap={{ scale: 0.97, borderColor: 'rgba(211, 47, 47, 0.5)' }}
                 >
-                  {/* Shimmer / destello effect */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '50%',
-                      height: '100%',
-                      background:
-                        'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), rgba(255,255,255,0.15), rgba(255,255,255,0.06), transparent)',
-                      animation: `shimmerSweep 3.5s ease-in-out infinite`,
-                      animationDelay: `${1.5 + index * 0.4}s`,
-                      pointerEvents: 'none',
-                    }}
-                  />
+                  {/* Red letter square */}
+                  <div style={{
+                    width: 30, height: 30,
+                    background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
+                    borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    color: '#FFFFFF',
+                    letterSpacing: '0.05em',
+                  }}>
+                    {option.letter}
+                  </div>
 
-                  {/* Top highlight line */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '1px',
-                      left: '15%',
-                      right: '15%',
-                      height: '1px',
-                      background:
-                        'linear-gradient(90deg, transparent, rgba(76,175,80,0.3), transparent)',
-                      pointerEvents: 'none',
-                      borderRadius: '1px',
-                    }}
-                  />
-
-                  {/* Button text */}
-                  <span style={{ position: 'relative', zIndex: 1 }}>
-                    {answer}
+                  {/* Option text */}
+                  <span style={{
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: 'clamp(0.75rem, 2.5vw, 0.88rem)',
+                    fontWeight: 400,
+                    color: '#FFFFFF',
+                    letterSpacing: '0.02em',
+                    lineHeight: 1.3,
+                  }}>
+                    {option.text}
                   </span>
                 </motion.button>
               ))}
             </div>
-          </div>
-
-          {/* Bottom subtle hint */}
-          <motion.div
-            className="relative z-30 pb-6"
-            initial={{ opacity: 0 }}
-            animate={showContent ? { opacity: 0.4 } : {}}
-            transition={{ duration: 1, delay: 2.2 }}
-          >
-            <span
-              style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.55rem, 1.5vw, 0.65rem)',
-                fontWeight: 400,
-                color: 'rgba(255,255,255,0.5)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Todas las respuestas llevan al mismo destino
-            </span>
           </motion.div>
-        </motion.div>
-      ) : (
-        <motion.div
-          className="fixed inset-0 z-50"
-          style={{ background: '#0a0a0a' }}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-        />
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      {/* === CONTINUAR BUTTON after video ends === */}
+      <AnimatePresence>
+        {videoEnded && (
+          <motion.div
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Semi-black translucent background */}
+            <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.7)' }} />
+
+            {/* CONTINUAR button */}
+            <motion.button
+              onClick={handleContinue}
+              onTouchEnd={(e) => { e.preventDefault(); handleContinue() }}
+              className="relative z-10 cursor-pointer border-none overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
+                borderRadius: 8,
+                padding: '18px 48px',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.9rem, 3vw, 1.1rem)',
+                fontWeight: 700,
+                color: '#FFFFFF',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                boxShadow: '0 0 30px rgba(211, 47, 47, 0.5), 0 0 60px rgba(211, 47, 47, 0.2)',
+              }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5, type: 'spring' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span style={{ position: 'relative', zIndex: 1 }}>CONTINUAR</span>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

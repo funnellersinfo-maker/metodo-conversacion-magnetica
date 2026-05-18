@@ -52,16 +52,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [activeCaptionIndex, setActiveCaptionIndex] = useState(0)
   const [visibleWords, setVisibleWords] = useState(0)
   const [callEnded, setCallEnded] = useState(false)
-  const [fadeToBlack, setFadeToBlack] = useState(false)
 
   const words = CAPTIONS[activeCaptionIndex]?.text.split(' ') || []
 
-  // Keep onComplete ref updated (never causes re-renders)
+  // Keep onComplete ref updated
   useEffect(() => {
     onCompleteRef.current = onComplete
   }, [onComplete])
 
-  // ============ COMPLETE HANDLER — called ONCE when audio ends ============
+  // ============ COMPLETE HANDLER — RED screen + fast transition to quiz ============
   const triggerComplete = () => {
     if (completedRef.current) return
     completedRef.current = true
@@ -71,23 +70,17 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudioRef.current.pause()
     }
 
-    // Show "Llamada finalizada" overlay
+    // Show RED "Llamada finalizada" overlay
     setCallEnded(true)
 
-    // After 2.5s, fade to black
+    // After 1.5s, advance directly to quiz (no fade to black)
     const t1 = setTimeout(() => {
-      setFadeToBlack(true)
-    }, 2500)
-    timersRef.current.push(t1)
-
-    // After 4s total, advance to next step (Quiz)
-    const t2 = setTimeout(() => {
       onCompleteRef.current()
-    }, 4000)
-    timersRef.current.push(t2)
+    }, 1500)
+    timersRef.current.push(t1)
   }
 
-  // ============ MAIN AUDIO SETUP — runs ONLY ONCE ============
+  // ============ MAIN AUDIO SETUP ============
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -134,17 +127,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     }
     playAudio()
 
-    // === EVENT: Audio ended → trigger complete ===
-    const handleEnded = () => {
-      triggerComplete()
-    }
+    const handleEnded = () => triggerComplete()
 
-    // === EVENT: Time update → track time + captions + bg music ===
     const handleTimeUpdate = () => {
       const t = audio.currentTime
       setCurrentTime(t)
 
-      // Find active caption (using ref to avoid re-running this effect)
+      // Find active caption
       const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
       if (idx !== -1 && idx !== captionIndexRef.current) {
         captionIndexRef.current = idx
@@ -161,14 +150,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
-    // Keep-alive: resume if paused unexpectedly
+    // Keep-alive
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
       }
     }, 1000)
 
-    // Auto-resume on pause
     const handlePause = () => {
       if (!completedRef.current) {
         setTimeout(() => {
@@ -189,13 +177,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       bgAudio.pause()
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
-      // Clear all pending timers
       timersRef.current.forEach(t => clearTimeout(t))
       timersRef.current = []
     }
-  }, []) // EMPTY: runs once, no re-runs
+  }, [])
 
-  // ============ WORD-BY-WORD TELEPROMPTER — slow reveal ============
+  // ============ WORD-BY-WORD TELEPROMPTER — synced to audio timing ============
   useEffect(() => {
     const caption = CAPTIONS[activeCaptionIndex]
     if (!caption) return
@@ -205,10 +192,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const totalWords = caption.text.split(' ').length
     const durationMs = (caption.end - caption.start) * 1000
 
-    // Mobile-optimized pace: 300ms before first word, snappy reveal
-    // Minimum 200ms per word — follows audio rhythm tightly
-    const initialDelay = 300
-    const wordDelay = Math.max(200, (durationMs - initialDelay) / totalWords)
+    // Pace that fills the full duration of the caption
+    // Small initial delay, then spread words evenly
+    const initialDelay = 150
+    const wordDelay = Math.max(180, (durationMs - initialDelay) / totalWords)
 
     let count = 0
     const timer = setInterval(() => {
@@ -244,49 +231,67 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Fade to black overlay */}
+      {/* === RED "Llamada finalizada" overlay === */}
       <AnimatePresence>
-        {fadeToBlack && (
+        {callEnded && (
           <motion.div
-            className="absolute inset-0 z-[100]"
-            style={{ background: '#000000' }}
+            className="absolute inset-0 z-[100] flex flex-col items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1.5 }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Call ended overlay */}
-      <AnimatePresence>
-        {callEnded && !fadeToBlack && (
-          <motion.div
-            className="absolute inset-0 z-[90] flex flex-col items-center justify-center"
-            style={{ background: 'rgba(10,10,10,0.9)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.5 }}
           >
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.05)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 16,
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            {/* Red background */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #B71C1C, #D32F2F, #C62828)' }} />
+            
+            {/* Phone icon */}
+            <motion.div
+              style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 20,
+              }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none" style={{ transform: 'rotate(135deg)' }}>
+                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
               </svg>
-            </div>
-            <span style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 'clamp(0.9rem, 3vw, 1.1rem)',
-              fontWeight: 500,
-              color: 'rgba(255,255,255,0.5)',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-            }}>
+            </motion.div>
+
+            <motion.span
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(1rem, 3.5vw, 1.3rem)',
+                fontWeight: 700,
+                color: '#FFFFFF',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                textShadow: '0 2px 20px rgba(0,0,0,0.4)',
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
               Llamada finalizada
-            </span>
+            </motion.span>
+
+            <motion.span
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.7rem, 2vw, 0.85rem)',
+                fontWeight: 400,
+                color: 'rgba(255,255,255,0.7)',
+                letterSpacing: '0.1em',
+                marginTop: 8,
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+            >
+              {formatTime(currentTime)}
+            </motion.span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -354,7 +359,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — word by word slow reveal === */}
+      {/* === TELEPROMPTER — word by word === */}
       <motion.div
         className="relative z-10 mt-3 w-full px-3 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
@@ -372,7 +377,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.3 }}
               style={{
                 fontFamily: "'Cinzel', serif",
                 fontSize: 'clamp(0.62rem, 2.4vw, 0.82rem)',
@@ -392,7 +397,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.35s ease',
+                    transition: 'opacity 0.3s ease',
                     marginRight: '0.22em',
                     display: 'inline',
                   }}
@@ -405,7 +410,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </div>
       </motion.div>
 
-      {/* === BOTTOM: Sound bar + time — NO HANG UP BUTTON === */}
+      {/* === BOTTOM: Sound bar + time === */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
         <div className="flex items-end justify-center gap-[2px]" style={{ height: '32px', marginBottom: '10px' }}>
           {frequencyData.slice(0, 24).map((val, i) => {
