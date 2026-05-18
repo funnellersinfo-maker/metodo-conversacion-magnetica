@@ -345,54 +345,95 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — pure time-based, copie exacto con timestamps quirúrgicos === */}
+      {/* === TELEPROMPTER — Cinematic CRT Phosphor Reveal === */}
       <motion.div
-        className="relative z-10 mt-3 w-full px-3 flex-1 flex items-center justify-center"
+        className="relative z-10 mt-4 w-full px-5 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.4 }}
         style={{ minHeight: 0 }}
       >
-        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '4px 0', transform: 'translateZ(0)' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
+        {/* Subtle CRT vignette behind text */}
+        <div style={{
+          position: 'absolute',
+          inset: '8%',
+          background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(76, 175, 80, 0.02) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{
+          width: '100%',
+          textAlign: 'center',
+          position: 'relative',
+          padding: '12px 8px',
+          transform: 'translateZ(0)',
+        }}>
+          {/* Gentle edge fades — softer so text doesn't clip */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '12%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '12%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           
           {activeCaption && (
             <p
               key={activeCaptionIndex}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.632rem, 2.45vw, 0.836rem)',
+                fontSize: 'clamp(0.7rem, 2.8vw, 0.92rem)',
                 fontWeight: 500,
-                color: 'rgba(76, 175, 80, 0.9)',
-                lineHeight: 1.5,
-                letterSpacing: '0.01em',
-                textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
-                willChange: 'opacity',
-                transform: 'translateZ(0)',
-                WebkitBackfaceVisibility: 'hidden',
-                minHeight: '2em',
-                transition: 'opacity 0.3s ease',
-                opacity: 1,
+                color: 'rgba(76, 175, 80, 0.95)',
+                lineHeight: 1.7,
+                letterSpacing: '0.02em',
+                minHeight: '3em',
+                margin: 0,
               }}
             >
-              {words.map((word, i) => (
+              {words.map((word, i) => {
+                const isVisible = i < visibleWords
+                const isLatest = i === visibleWords - 1 && isVisible
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline',
+                      opacity: isVisible ? 1 : 0,
+                      marginRight: '0.28em',
+                      color: isLatest ? '#66FF66' : 'rgba(76, 175, 80, 0.95)',
+                      textShadow: isLatest
+                        ? '0 0 8px rgba(102, 255, 102, 0.8), 0 0 20px rgba(76, 175, 80, 0.5), 0 0 40px rgba(76, 175, 80, 0.2)'
+                        : '0 0 12px rgba(76, 175, 80, 0.3), 0 0 24px rgba(76, 175, 80, 0.1)',
+                      transition: 'opacity 0.35s ease, color 0.5s ease, text-shadow 0.5s ease',
+                    }}
+                  >
+                    {word}
+                  </span>
+                )
+              })}
+              {/* Blinking cursor after last visible word */}
+              {visibleWords > 0 && (
                 <span
-                  key={i}
                   style={{
-                    opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.25s ease',
-                    marginRight: '0.22em',
-                    display: 'inline',
+                    display: 'inline-block',
+                    width: '2px',
+                    height: '1em',
+                    backgroundColor: '#66FF66',
+                    marginLeft: '2px',
+                    verticalAlign: 'middle',
+                    animation: 'blink-cursor 0.8s step-end infinite',
+                    boxShadow: '0 0 6px rgba(102, 255, 102, 0.6)',
                   }}
-                >
-                  {word}
-                </span>
-              ))}
+                />
+              )}
             </p>
           )}
         </div>
       </motion.div>
+
+      {/* Cursor blink keyframes */}
+      <style>{`
+        @keyframes blink-cursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
 
       {/* === BOTTOM: Sound bar + time === */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
