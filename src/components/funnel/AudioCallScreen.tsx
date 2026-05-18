@@ -7,25 +7,26 @@ interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// Teleprompter captions — REAL transcript from call audio, synced to timestamps
+// Teleprompter captions — REAL transcript, ~35% ahead of audio for teleprompter feel
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 2.5, text: 'Conectando...' },
-  { start: 2.5, end: 5.5, text: 'Hey, no cuelgues.' },
-  { start: 5.5, end: 9, text: 'Tienes suerte de haber atendido.' },
-  { start: 9, end: 14, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
-  { start: 14, end: 18, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
-  { start: 18, end: 23, text: 'Hace años la atracción era una especie de alquimia.' },
-  { start: 23, end: 28, text: 'Había misterio, había silencios que decían más que mil palabras.' },
-  { start: 28, end: 33, text: 'Pero algo se rompió.' },
-  { start: 33, end: 39, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
-  { start: 39, end: 44, text: 'Que ella ya detecta en menos de siete segundos.' },
-  { start: 44, end: 48, text: 'Te has vuelto predecible.' },
-  { start: 48, end: 52, text: 'Y en la biología del deseo... lo predecible es invisible.' },
-  { start: 52, end: 56, text: 'Ella no te ignora porque no le gustes.' },
-  { start: 56, end: 60, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
-  { start: 60, end: 63, text: 'Eres un eco más en su bandeja de entrada.' },
-  { start: 63, end: 66, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
-  { start: 66, end: 68.3, text: 'Un sistema que ella no puede ignorar.' },
+  { start: 0, end: 1.5, text: 'Conectando...' },
+  { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
+  { start: 4, end: 7, text: 'Tienes suerte de haber atendido.' },
+  { start: 7, end: 10.5, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
+  { start: 10.5, end: 14, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 14, end: 17.5, text: 'Hace años la atracción era una especie de alquimia.' },
+  { start: 17.5, end: 21.5, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 21.5, end: 24.5, text: 'Pero algo se rompió.' },
+  { start: 24.5, end: 29, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
+  { start: 29, end: 33, text: 'Que ella ya detecta en menos de siete segundos.' },
+  { start: 33, end: 36, text: 'Te has vuelto predecible.' },
+  { start: 36, end: 39.5, text: 'Y en la biología del deseo... lo predecible es invisible.' },
+  { start: 39.5, end: 43, text: 'Ella no te ignora porque no le gustes.' },
+  { start: 43, end: 47, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 47, end: 50, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 50, end: 54, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 54, end: 58, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto.' },
+  { start: 58, end: 68.3, text: 'No cuelgues... el primer capítulo está por desbloquearse.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -272,38 +273,39 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
       {/* === TELEPROMPTER — Tubular/reel effect, real transcript === */}
       <motion.div
-        className="relative z-10 mt-6 w-full px-6"
+        className="relative z-10 mt-6 w-full px-6 flex-1 flex items-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
       >
-        <div style={{ minHeight: '54px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '8px 0' }}>
           {/* Subtle top/bottom fade for reel/tubular feel */}
           <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '30%',
+            position: 'absolute', top: 0, left: 0, right: 0, height: '25%',
             background: 'linear-gradient(to bottom, #0a0a0a, transparent)',
             pointerEvents: 'none', zIndex: 2,
           }} />
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%',
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '25%',
             background: 'linear-gradient(to top, #0a0a0a, transparent)',
             pointerEvents: 'none', zIndex: 2,
           }} />
           <AnimatePresence mode="wait">
             <motion.p
               key={activeCaption}
-              initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -14, filter: 'blur(6px)' }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: 10, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.97 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.78rem, 2.5vw, 0.92rem)',
+                fontSize: 'clamp(0.8rem, 2.8vw, 0.95rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
                 lineHeight: 1.6,
                 letterSpacing: '0.03em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
+                willChange: 'transform, opacity',
               }}
             >
               {activeCaption}
