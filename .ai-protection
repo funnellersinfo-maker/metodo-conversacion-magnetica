@@ -1,0 +1,83 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  ARCHIVO DE PROTECCION — NO MODIFICAR SIN AUTORIZACION         ║
+# ║  Creado: 2025-05-18                                           ║
+# ║  Git Tag: v1.0-llamada-locked                                 ║
+# ╚══════════════════════════════════════════════════════════════════╝
+#
+# Este archivo define los componentes que estan PERMANENTEMENTE BLOQUEADOS.
+# Ningun agente de IA puede modificar estos archivos sin autorizacion
+# explicita del usuario. Si un agente necesita cambiar algo aqui,
+# DEBE preguntar primero y obtener confirmacion.
+#
+# Para restaurar cualquier archivo a su estado bloqueado:
+#   git checkout v1.0-llamada-locked -- <archivo>
+
+# ============ ARCHIVOS PROTEGIDOS (NO TOCAR) ============
+
+[src/components/funnel/AudioCallScreen.tsx]
+razon = Teleprompter calibrado perfectamente con sync exacto
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[src/components/funnel/FunnelOrchestrator.tsx]
+razon = Orquestador de flujo funcionando perfecto — llamada → quiz → siguiente
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[src/components/funnel/FakeQuiz.tsx]
+razon = Quiz funcional con video overlay y boton continuar
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[src/components/funnel/PreCallVideo.tsx]
+razon = Video pre-llamada optimizado con poster y faststart
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[src/components/funnel/CinematicLanding.tsx]
+razon = Landing cinemática funcional
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/videos/dante-llamando.mp4]
+razon = Video comprimido 825KB faststart — NO reemplazar
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/videos/vidrio-roto.mp4]
+razon = Video quiz comprimido 1.6MB faststart — NO reemplazar
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/videos/dante-llamando-poster.jpg]
+razon = Poster frame para video instantaneo
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/audio/llamada-dante.m4a]
+razon = Audio de llamada con timing calibrado
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/audio/fondo-llamada.aac]
+razon = Audio de fondo de llamada
+bloqueado = true
+tag = v1.0-llamada-locked
+
+[public/audio/vibration.mp3]
+razon = Sonido de vibracion para notificacion
+bloqueado = true
+tag = v1.0-llamada-locked
+
+# ============ COMANDO DE RESTAURACION ============
+# Si algo se rompe, ejecutar para volver al estado bloqueado:
+#
+#   git checkout v1.0-llamada-locked -- src/components/funnel/AudioCallScreen.tsx
+#   git checkout v1.0-llamada-locked -- src/components/funnel/FunnelOrchestrator.tsx
+#   git checkout v1.0-llamada-locked -- src/components/funnel/FakeQuiz.tsx
+#   git checkout v1.0-llamada-locked -- src/components/funnel/PreCallVideo.tsx
+#   git checkout v1.0-llamada-locked -- src/components/funnel/CinematicLanding.tsx
+#
+# O restaurar TODO de una vez:
+#   git checkout v1.0-llamada-locked -- src/components/funnel/
+#
