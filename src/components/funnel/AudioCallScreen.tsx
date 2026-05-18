@@ -8,25 +8,25 @@ interface AudioCallScreenProps {
 }
 
 // ============ COPIE EXACTO DE LA LLAMADA — Sincronización Calibrada a 68.28s ============
-// Los huecos entre bloques son INTENCIONALES — coinciden con respiraciones/suspiros del actor
+// Timecodes 24fps convertidos a segundos — huecos = respiraciones del actor
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0.83, end: 2.63, text: 'Hey... no cuelgues.' },
-  { start: 3.21, end: 5.42, text: 'Tienes suerte de haber atendido.' },
-  { start: 5.83, end: 9.63, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' },
-  { start: 9.92, end: 13.50, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' },
-  { start: 14.08, end: 17.42, text: 'Hace años, la atracción era una especie de alquimia.' },
-  { start: 17.75, end: 22.50, text: 'Había misterio, había silencios que decían más que mil palabras.' },
-  { start: 22.83, end: 24.50, text: 'Pero algo se rompió.' },
-  { start: 24.83, end: 29.42, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' },
-  { start: 29.75, end: 32.63, text: 'que ella ya detecta en menos de 7 segundos.' },
-  { start: 33.08, end: 39.42, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' },
-  { start: 39.83, end: 41.92, text: 'Ella no te ignora porque no le gustes;' },
-  { start: 42.21, end: 46.08, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' },
-  { start: 46.50, end: 49.21, text: 'Eres un eco más en su bandeja de entrada.' },
-  { start: 49.63, end: 55.42, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
-  { start: 55.83, end: 61.75, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' },
-  { start: 62.42, end: 64.08, text: 'No cuelgues.' },
-  { start: 64.50, end: 68.28, text: 'El primer capítulo está por desbloquearse.' },
+  { start: 0.625, end: 2.833, text: 'Hey... no cuelgues.' },
+  { start: 3.208, end: 5.625, text: 'Tienes suerte de haber atendido.' },
+  { start: 5.917, end: 10.208, text: 'La mayoría de los hombres están ahí fuera, gritando por atención,' },
+  { start: 10.625, end: 14.750, text: 'y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 15.083, end: 18.833, text: 'Hace años, la atracción era una especie de alquimia.' },
+  { start: 18.958, end: 23.625, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 23.917, end: 25.500, text: 'Pero algo se rompió.' },
+  { start: 25.833, end: 30.417, text: 'El mundo se llenó de plantillas baratas y frases de "copia y pega"' },
+  { start: 30.750, end: 33.500, text: 'que ella ya detecta en menos de 7 segundos.' },
+  { start: 33.833, end: 39.750, text: 'Te has vuelto predecible, y en la biología del deseo, lo predecible es invisible.' },
+  { start: 39.958, end: 42.083, text: 'Ella no te ignora porque no le gustes;' },
+  { start: 42.417, end: 46.625, text: 'te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 46.917, end: 49.417, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 49.750, end: 55.333, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 55.625, end: 61.833, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto, no a su lógica.' },
+  { start: 62.083, end: 63.917, text: 'No cuelgues.' },
+  { start: 64.208, end: 68.292, text: 'El primer capítulo está por desbloquearse.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
