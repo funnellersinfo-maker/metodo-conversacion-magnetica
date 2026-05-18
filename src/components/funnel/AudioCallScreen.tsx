@@ -11,21 +11,28 @@ const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 0, end: 1.5, text: 'Conectando...' },
   { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
   { start: 4, end: 7, text: 'Tienes suerte de haber atendido.' },
-  { start: 7, end: 10.5, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
-  { start: 10.5, end: 14, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
-  { start: 14, end: 17.5, text: 'Hace años la atracción era una especie de alquimia.' },
-  { start: 17.5, end: 21.5, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 7, end: 8.7, text: 'La mayoría de los hombres' },
+  { start: 8.7, end: 10.5, text: 'gritando por atención...' },
+  { start: 10.5, end: 12.2, text: 'Y tú... tú acabas de entrar' },
+  { start: 12.2, end: 14, text: 'en la frecuencia correcta.' },
+  { start: 14, end: 17.5, text: 'La atracción era una alquimia.' },
+  { start: 17.5, end: 19.5, text: 'Había misterio, silencios' },
+  { start: 19.5, end: 21.5, text: 'que decían más que mil palabras.' },
   { start: 21.5, end: 24.5, text: 'Pero algo se rompió.' },
-  { start: 24.5, end: 29, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
-  { start: 29, end: 33, text: 'Que ella ya detecta en menos de siete segundos.' },
+  { start: 24.5, end: 26.8, text: 'El mundo se llenó de plantillas' },
+  { start: 26.8, end: 29, text: 'y frases de copia y pega...' },
+  { start: 29, end: 33, text: 'Que detecta en menos de 7 segundos.' },
   { start: 33, end: 36, text: 'Te has vuelto predecible.' },
-  { start: 36, end: 39.5, text: 'Y en la biología del deseo... lo predecible es invisible.' },
-  { start: 39.5, end: 43, text: 'Ella no te ignora porque no le gustes.' },
-  { start: 43, end: 47, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
-  { start: 47, end: 50, text: 'Eres un eco más en su bandeja de entrada.' },
-  { start: 50, end: 54, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
-  { start: 54, end: 58, text: 'Un sistema que ella no puede ignorar porque le habla directamente a su instinto.' },
-  { start: 58, end: 68, text: 'No cuelgues... el primer capítulo está por desbloquearse.' },
+  { start: 36, end: 39.5, text: 'Lo predecible es invisible.' },
+  { start: 39.5, end: 43, text: 'No te ignora porque no le gustes.' },
+  { start: 43, end: 45, text: 'Te ignora porque ya sabe' },
+  { start: 45, end: 47, text: 'qué vas a decir después.' },
+  { start: 47, end: 50, text: 'Eres un eco en su bandeja.' },
+  { start: 50, end: 52, text: 'Pero escucha bien...' },
+  { start: 52, end: 54, text: 'lo que viene es el cortocircuito.' },
+  { start: 54, end: 56, text: 'Un sistema que no puede ignorar' },
+  { start: 56, end: 58, text: 'porque habla a su instinto.' },
+  { start: 58, end: 68, text: 'No cuelgues... el primer capítulo.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -198,10 +205,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const totalWords = caption.text.split(' ').length
     const durationMs = (caption.end - caption.start) * 1000
 
-    // Balanced pace: 400ms before first word, then natural timing per word
-    // Minimum 280ms per word — follows audio rhythm
-    const initialDelay = 400
-    const wordDelay = Math.max(280, (durationMs - initialDelay) / totalWords)
+    // Mobile-optimized pace: 300ms before first word, snappy reveal
+    // Minimum 200ms per word — follows audio rhythm tightly
+    const initialDelay = 300
+    const wordDelay = Math.max(200, (durationMs - initialDelay) / totalWords)
 
     let count = 0
     const timer = setInterval(() => {
@@ -349,13 +356,13 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
       {/* === TELEPROMPTER — word by word slow reveal === */}
       <motion.div
-        className="relative z-10 mt-4 w-full px-4 flex-1 flex items-center justify-center"
+        className="relative z-10 mt-3 w-full px-3 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8, duration: 0.4 }}
         style={{ minHeight: 0 }}
       >
-        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '8px 4px', transform: 'translateZ(0)', wordBreak: 'break-word' }}>
+        <div style={{ width: '100%', textAlign: 'center', position: 'relative', overflow: 'hidden', padding: '4px 0', transform: 'translateZ(0)', whiteSpace: 'nowrap' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to bottom, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%', background: 'linear-gradient(to top, #0a0a0a, transparent)', pointerEvents: 'none', zIndex: 2 }} />
           
@@ -368,16 +375,16 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               transition={{ duration: 0.4 }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.72rem, 2.2vw, 0.9rem)',
+                fontSize: 'clamp(0.62rem, 2.4vw, 0.82rem)',
                 fontWeight: 500,
                 color: 'rgba(76, 175, 80, 0.9)',
-                lineHeight: 1.8,
+                lineHeight: 1.4,
                 letterSpacing: '0.01em',
                 textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
                 willChange: 'opacity',
                 transform: 'translateZ(0)',
                 WebkitBackfaceVisibility: 'hidden',
-                minHeight: '2.8em',
+                minHeight: '1.8em',
               }}
             >
               {words.map((word, i) => (
@@ -385,8 +392,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.5s ease',
-                    marginRight: '0.3em',
+                    transition: 'opacity 0.35s ease',
+                    marginRight: '0.22em',
                     display: 'inline',
                   }}
                 >
