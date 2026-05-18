@@ -115,20 +115,43 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       source.connect(analyser)
       analyser.connect(audioCtx.destination)
       analyserRef.current = analyser
+    } catch {
+      // Web Audio API not available
+    }
 
-      const updateFrequency = () => {
-        if (analyserRef.current && !completedRef.current) {
+    // ============ HIGH-FREQ ANIMATION LOOP ============
+    // requestAnimationFrame at ~60fps for smooth word reveal
+    // (timeupdate alone fires ~4x/sec → jerky on mobile)
+    let lastCaptionIdx = -1
+    const animLoop = () => {
+      if (!completedRef.current) {
+        const t = audio.currentTime
+        setCurrentTime(t)
+
+        // Find active caption — clear during gaps (between blocks)
+        const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
+        if (idx !== lastCaptionIdx) {
+          lastCaptionIdx = idx
+          setActiveCaptionIndex(idx)
+        }
+
+        // Start background music at second 40
+        if (!bgStartedRef.current && t >= 40) {
+          bgStartedRef.current = true
+          bgAudio.play().catch(() => {})
+        }
+
+        // Update frequency bars
+        if (analyserRef.current) {
           const data = new Uint8Array(analyserRef.current.frequencyBinCount)
           analyserRef.current.getByteFrequencyData(data)
           const normalized = Array.from(data).map(v => Math.round((v / 255) * 100))
           setFrequencyData(normalized)
         }
-        animFrameRef.current = requestAnimationFrame(updateFrequency)
       }
-      updateFrequency()
-    } catch {
-      // Web Audio API not available
+      animFrameRef.current = requestAnimationFrame(animLoop)
     }
+    animLoop()
 
     const playAudio = async () => {
       try {
@@ -142,26 +165,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     playAudio()
 
     const handleEnded = () => triggerComplete()
-
-    const handleTimeUpdate = () => {
-      const t = audio.currentTime
-      setCurrentTime(t)
-
-      // Find active caption
-      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
-      if (idx !== -1 && idx !== activeCaptionIndex) {
-        setActiveCaptionIndex(idx)
-      }
-
-      // Start background music at second 40
-      if (!bgStartedRef.current && t >= 40) {
-        bgStartedRef.current = true
-        bgAudio.play().catch(() => {})
-      }
-    }
-
     audio.addEventListener('ended', handleEnded)
-    audio.addEventListener('timeupdate', handleTimeUpdate)
 
     // Keep-alive
     const keepAlive = setInterval(() => {
@@ -183,7 +187,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
     return () => {
       audio.removeEventListener('ended', handleEnded)
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('pause', handlePause)
       clearInterval(keepAlive)
       audio.pause()
@@ -341,11 +344,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       {/* === TELEPROMPTER — Palabra por palabra, sin overflow === */}
       {/*
         ARQUITECTURA:
-        - position:absolute + padding:0 4vw = ancho INAMOVIBLE
-        - overflowWrap:anywhere = NUNCA se sale
-        - .join(' ') para texto ya visible = wrap perfecto en espacios
-        - Última palabra en span propio = efecto glow cinematográfico
-        - Revelado al 95% de la duración (no 75% — era muy rápido)
+        - position:absolute + left:0;right:0 + padding = ancho INAMOVIBLE
+        - Cada palabra visible = <span> inline → navegador wrappea naturalmente
+        - Solo se renderizan spans de palabras VISIBLES (no placeholders invisibles)
+        - Última palabra visible = efecto glow cinematográfico #66FF66
+        - Palabras anteriores = verde suave con sutil glow
+        - NO invisible spans, NO nowrap → NUNCA se desborda
       */}
       <div style={{
         position: 'absolute',
@@ -361,6 +365,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
           maxWidth: '420px',
           margin: '0 auto',
           boxSizing: 'border-box',
+          overflow: 'hidden',
         }}>
           {activeCaption && visibleWords > 0 && (
             <p style={{
@@ -373,33 +378,29 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               padding: 0,
               textAlign: 'center',
               boxSizing: 'border-box',
-              display: 'block',
               width: '100%',
-              whiteSpace: 'pre-wrap',
-              overflowWrap: 'anywhere',
+              overflowWrap: 'break-word',
               wordBreak: 'break-word',
             }}>
-              {/* Palabras ya reveladas — TEXTO PLANO con .join para wrap perfecto */}
-              {visibleWords > 1 && (
-                <span style={{
-                  color: 'rgba(76, 175, 80, 0.9)',
-                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
-                  transition: 'color 0.4s ease',
-                }}>
-                  {words.slice(0, visibleWords - 1).join(' ')}{' '}
-                </span>
-              )}
-              {/* Última palabra — BRILLA con efecto glow cinematográfico */}
-              <span
-                key={`latest-${activeCaptionIndex}-${visibleWords}`}
-                style={{
-                  color: '#66FF66',
-                  textShadow: '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)',
-                  transition: 'color 0.3s ease, text-shadow 0.3s ease',
-                }}
-              >
-                {words[visibleWords - 1]}
-              </span>
+              {words.slice(0, visibleWords).map((word, i) => {
+                const isLast = i === visibleWords - 1
+                return (
+                  <span
+                    key={`w-${activeCaptionIndex}-${i}`}
+                    style={{
+                      display: 'inline',
+                      color: isLast ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
+                      textShadow: isLast
+                        ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)'
+                        : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                      transition: 'color 0.3s ease, text-shadow 0.3s ease',
+                      marginLeft: i === 0 ? 0 : '0.25em',
+                    }}
+                  >
+                    {word}
+                  </span>
+                )
+              })}
             </p>
           )}
         </div>
