@@ -22,22 +22,22 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
     const video = videoRef.current
     if (!video) return
 
-    // Auto-play with sound — user gesture from CTA click carries over
+    // Start MUTED — guaranteed autoplay on all mobile browsers
+    // Then try to unmute immediately (user gesture may carry over)
     const playVideo = async () => {
+      video.muted = true
       try {
-        video.muted = false
-        video.volume = 1.0
         await video.play()
-      } catch {
-        // Browser blocked autoplay with sound — try muted
+        // Video is playing muted — now try to unmute (gesture may carry)
         try {
-          video.muted = true
-          await video.play()
-          setShowUnmute(true)
+          video.muted = false
+          video.volume = 1.0
         } catch {
-          // Even muted blocked — show tap to play
           setShowUnmute(true)
         }
+      } catch {
+        // Even muted autoplay failed — show tap prompt
+        setShowUnmute(true)
       }
     }
 
@@ -45,18 +45,14 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
 
     const handleEnded = () => handleComplete()
 
-    // CRITICAL: If video stalls (buffer), wait and auto-resume
     const handleStalled = () => {
-      console.log('Video stalled, attempting resume...')
       if (!video.paused && !completedRef.current) {
         video.play().catch(() => {})
       }
     }
 
-    // CRITICAL: If video pauses unexpectedly (browser power saving), resume it
     const handlePause = () => {
       if (!completedRef.current) {
-        // Small delay to avoid race conditions, then force resume
         setTimeout(() => {
           if (!video.ended && !completedRef.current) {
             video.play().catch(() => {})
@@ -65,12 +61,6 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       }
     }
 
-    // CRITICAL: If video is waiting for data, auto-resume when ready
-    const handlePlaying = () => {
-      // Video is playing — good
-    }
-
-    // CRITICAL: On error, try to restart from current position
     const handleError = () => {
       if (!completedRef.current && video.error) {
         const currentTime = video.currentTime
@@ -80,7 +70,6 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       }
     }
 
-    // CRITICAL: Keep video awake — if it stops buffering, nudge it
     const keepAlive = setInterval(() => {
       if (video.paused && !video.ended && !completedRef.current) {
         video.play().catch(() => {})
@@ -90,7 +79,6 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
     video.addEventListener('ended', handleEnded)
     video.addEventListener('stalled', handleStalled)
     video.addEventListener('pause', handlePause)
-    video.addEventListener('playing', handlePlaying)
     video.addEventListener('error', handleError)
     video.addEventListener('waiting', handleStalled)
 
@@ -98,7 +86,6 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('stalled', handleStalled)
       video.removeEventListener('pause', handlePause)
-      video.removeEventListener('playing', handlePlaying)
       video.removeEventListener('error', handleError)
       video.removeEventListener('waiting', handleStalled)
       clearInterval(keepAlive)
@@ -120,12 +107,13 @@ export default function PreCallVideo({ onComplete }: PreCallVideoProps) {
       className="fixed inset-0 z-50 bg-black select-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.2 }}
     >
       <video
         ref={videoRef}
         src="/videos/dante-llamando.mp4"
         playsInline
+        muted
         preload="auto"
         className="w-full h-full object-cover"
       />
