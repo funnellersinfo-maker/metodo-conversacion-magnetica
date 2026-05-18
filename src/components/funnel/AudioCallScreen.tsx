@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// Teleprompter captions — synced with audio at REAL TIME
-// Text appears word by word at a SLOW, readable pace
 const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 0, end: 1.5, text: 'Conectando...' },
   { start: 1.5, end: 4, text: 'Hey, no cuelgues.' },
@@ -37,13 +35,9 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const animFrameRef = useRef<number | null>(null)
   const completedRef = useRef(false)
   const bgStartedRef = useRef(false)
-  const activeCaptionRef = useRef(0)
+  const captionIndexRef = useRef(0)
   const onCompleteRef = useRef(onComplete)
-
-  // Keep onComplete ref updated
-  useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -53,38 +47,51 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [callEnded, setCallEnded] = useState(false)
   const [fadeToBlack, setFadeToBlack] = useState(false)
 
-  const currentCaption = CAPTIONS[activeCaptionIndex]
-  const words = currentCaption ? currentCaption.text.split(' ') : []
+  const words = CAPTIONS[activeCaptionIndex]?.text.split(' ') || []
 
-  // Stable handleComplete — uses ref so it never causes re-renders
-  const handleComplete = useCallback(() => {
+  // Keep onComplete ref updated (never causes re-renders)
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  // ============ COMPLETE HANDLER — called ONCE when audio ends ============
+  const triggerComplete = () => {
     if (completedRef.current) return
     completedRef.current = true
+
+    // Stop background audio
     if (bgAudioRef.current) {
       bgAudioRef.current.pause()
-      bgAudioRef.current.currentTime = 0
     }
+
+    // Show "Llamada finalizada" overlay
     setCallEnded(true)
-    setTimeout(() => {
+
+    // After 2.5s, fade to black
+    const t1 = setTimeout(() => {
       setFadeToBlack(true)
     }, 2500)
-    setTimeout(() => {
+    timersRef.current.push(t1)
+
+    // After 4s total, advance to next step (Quiz)
+    const t2 = setTimeout(() => {
       onCompleteRef.current()
     }, 4000)
-  }, [])
+    timersRef.current.push(t2)
+  }
 
   // ============ MAIN AUDIO SETUP — runs ONLY ONCE ============
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    // Background music
+    // Background music (starts at second 40)
     const bgAudio = new Audio('/audio/fondo-llamada.aac')
     bgAudio.loop = true
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
-    // Web Audio API for frequency visualization
+    // Web Audio API for frequency bars
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -108,34 +115,37 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       // Web Audio API not available
     }
 
-    // Play audio
+    // Play the call audio
     const playAudio = async () => {
       try {
         audio.volume = 1.0
         await audio.play()
         setIsPlaying(true)
       } catch {
-        // Browser may block
+        // Browser may block autoplay
       }
     }
     playAudio()
 
-    // Event: audio ended
-    const handleEnded = () => handleComplete()
+    // === EVENT: Audio ended → trigger complete ===
+    const handleEnded = () => {
+      triggerComplete()
+    }
 
-    // Event: time update — track captions and time
+    // === EVENT: Time update → track time + captions + bg music ===
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
+      const t = audio.currentTime
+      setCurrentTime(t)
 
-      // Find current caption using REF to avoid re-running this effect
-      const captionIndex = CAPTIONS.findIndex(c => audio.currentTime >= c.start && audio.currentTime < c.end)
-      if (captionIndex !== -1 && captionIndex !== activeCaptionRef.current) {
-        activeCaptionRef.current = captionIndex
-        setActiveCaptionIndex(captionIndex)
+      // Find active caption (using ref to avoid re-running this effect)
+      const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
+      if (idx !== -1 && idx !== captionIndexRef.current) {
+        captionIndexRef.current = idx
+        setActiveCaptionIndex(idx)
       }
 
       // Start background music at second 40
-      if (!bgStartedRef.current && audio.currentTime >= 40) {
+      if (!bgStartedRef.current && t >= 40) {
         bgStartedRef.current = true
         bgAudio.play().catch(() => {})
       }
@@ -144,17 +154,20 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
-    // Keep-alive: if audio pauses unexpectedly, resume it
+    // Keep-alive: resume if paused unexpectedly
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
       }
     }, 1000)
 
+    // Auto-resume on pause
     const handlePause = () => {
       if (!completedRef.current) {
         setTimeout(() => {
-          if (!audio.ended && !completedRef.current) audio.play().catch(() => {})
+          if (!audio.ended && !completedRef.current) {
+            audio.play().catch(() => {})
+          }
         }, 100)
       }
     }
@@ -167,13 +180,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       clearInterval(keepAlive)
       audio.pause()
       bgAudio.pause()
-      bgAudio.currentTime = 0
       bgAudioRef.current = null
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      // Clear all pending timers
+      timersRef.current.forEach(t => clearTimeout(t))
+      timersRef.current = []
     }
-  }, [])  // <-- EMPTY dependency array: runs only ONCE
+  }, []) // EMPTY: runs once, no re-runs
 
-  // ============ WORD-BY-WORD REVEAL — separate from audio ============
+  // ============ WORD-BY-WORD TELEPROMPTER — slow reveal ============
   useEffect(() => {
     const caption = CAPTIONS[activeCaptionIndex]
     if (!caption) return
@@ -183,17 +198,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const totalWords = caption.text.split(' ').length
     const durationMs = (caption.end - caption.start) * 1000
 
-    // Slow, readable pace: 
-    // - 500ms initial delay before first word
-    // - Each word gets ample time (minimum 380ms, scaled by duration)
-    const initialDelay = 500
-    const wordDelay = Math.max(380, (durationMs - initialDelay) / totalWords)
+    // SLOW pace: 600ms before first word, then generous time per word
+    const initialDelay = 600
+    const wordDelay = Math.max(450, (durationMs - initialDelay) / totalWords)
 
-    let wordCount = 0
+    let count = 0
     const timer = setInterval(() => {
-      wordCount++
-      if (wordCount <= totalWords) {
-        setVisibleWords(wordCount)
+      count++
+      if (count <= totalWords) {
+        setVisibleWords(count)
       } else {
         clearInterval(timer)
       }
@@ -213,8 +226,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
   const RING_RADIUS = 52
   const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
-  const ringProgress = (progressPercent / 100) * RING_CIRCUMFERENCE
-  const ringDashOffset = RING_CIRCUMFERENCE - ringProgress
+  const ringDashOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE
 
   return (
     <motion.div
@@ -334,7 +346,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — word by word reveal === */}
+      {/* === TELEPROMPTER — word by word slow reveal === */}
       <motion.div
         className="relative z-10 mt-4 w-full px-6 flex-1 flex items-center justify-center"
         initial={{ opacity: 0 }}
@@ -372,7 +384,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
                   key={i}
                   style={{
                     opacity: i < visibleWords ? 1 : 0,
-                    transition: 'opacity 0.5s ease',
+                    transition: 'opacity 0.6s ease',
                     marginRight: '0.3em',
                     display: 'inline',
                   }}
@@ -385,7 +397,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </div>
       </motion.div>
 
-      {/* === BOTTOM: Sound bar + time + end call === */}
+      {/* === BOTTOM: Sound bar + time — NO HANG UP BUTTON === */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
         <div className="flex items-end justify-center gap-[2px]" style={{ height: '32px', marginBottom: '10px' }}>
           {frequencyData.slice(0, 24).map((val, i) => {
@@ -428,22 +440,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               transition={{ duration: 0.3 }}
             />
           </div>
-        </div>
-
-        <div className="flex justify-center mt-5">
-          <button onClick={handleComplete} className="cursor-pointer border-none bg-transparent flex items-center justify-center">
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(211, 47, 47, 0.35), 0 4px 14px rgba(0,0,0,0.3)',
-              transform: 'rotate(135deg)',
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white" stroke="none">
-                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-              </svg>
-            </div>
-          </button>
         </div>
       </div>
     </motion.div>

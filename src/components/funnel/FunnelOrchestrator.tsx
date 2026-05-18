@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CinematicLanding from './CinematicLanding'
 import PreCallVideo from './PreCallVideo'
@@ -12,70 +12,56 @@ import DantePodcast from './DantePodcast'
 import LockScreenNotification from './LockScreenNotification'
 import WhatsAppChat from './WhatsAppChat'
 
-type FunnelStep = 
-  | 'landing' 
-  | 'pre_call_video' 
-  | 'call_ringing' 
-  | 'call_audio' 
-  | 'quiz' 
-  | 'clown_short' 
-  | 'podcast' 
-  | 'clown_full' 
-  | 'lock_screen' 
-  | 'whatsapp_chat'
+// 10 STEP FUNNEL — explicit numeric index, NO string matching
+// 0: landing
+// 1: pre_call_video
+// 2: call_ringing
+// 3: call_audio
+// 4: quiz
+// 5: clown_short
+// 6: podcast
+// 7: clown_full
+// 8: lock_screen
+// 9: whatsapp_chat
 
-const stepOrder: FunnelStep[] = [
-  'landing',
-  'pre_call_video',
-  'call_ringing',
-  'call_audio',
-  'quiz',
-  'clown_short',
-  'podcast',
-  'clown_full',
-  'lock_screen',
-  'whatsapp_chat',
-]
+const TOTAL_STEPS = 10
 
 export function FunnelOrchestrator() {
-  const [currentStep, setCurrentStep] = useState<FunnelStep>('landing')
+  const [stepIndex, setStepIndex] = useState(0)
+  const transitioningRef = useRef(false)
 
-  // Use useCallback with functional state update to avoid stale closures
+  // goToNextStep is BULLETPROOF:
+  // - Only advances ONE step at a time
+  // - Has a transition lock to prevent rapid successive calls
+  // - Lock releases after 1 second
   const goToNextStep = useCallback(() => {
-    setCurrentStep(prev => {
-      const currentIndex = stepOrder.indexOf(prev)
-      const nextIndex = currentIndex + 1
-      if (nextIndex < stepOrder.length) {
-        return stepOrder[nextIndex]
-      }
-      return prev
+    if (transitioningRef.current) return
+    transitioningRef.current = true
+
+    setStepIndex(prev => {
+      if (prev >= TOTAL_STEPS - 1) return prev
+      return prev + 1
     })
+
+    // Release lock after 1 second
+    setTimeout(() => {
+      transitioningRef.current = false
+    }, 1000)
   }, [])
 
   const renderStep = () => {
-    switch (currentStep) {
-      case 'landing':
-        return <CinematicLanding onComplete={goToNextStep} />
-      case 'pre_call_video':
-        return <PreCallVideo onComplete={goToNextStep} />
-      case 'call_ringing':
-        return <CallHook onAnswer={goToNextStep} />
-      case 'call_audio':
-        return <AudioCallScreen onComplete={goToNextStep} />
-      case 'quiz':
-        return <FakeQuiz onComplete={goToNextStep} />
-      case 'clown_short':
-        return <ClownVideo videoSrc="/videos/payaso-vidrio.mp4" onComplete={goToNextStep} />
-      case 'podcast':
-        return <DantePodcast onComplete={goToNextStep} />
-      case 'clown_full':
-        return <ClownVideo videoSrc="/videos/payaso-completo.mp4" showSoundPrompt onComplete={goToNextStep} />
-      case 'lock_screen':
-        return <LockScreenNotification onOpen={goToNextStep} />
-      case 'whatsapp_chat':
-        return <WhatsAppChat onComplete={goToNextStep} />
-      default:
-        return null
+    switch (stepIndex) {
+      case 0: return <CinematicLanding onComplete={goToNextStep} />
+      case 1: return <PreCallVideo onComplete={goToNextStep} />
+      case 2: return <CallHook onAnswer={goToNextStep} />
+      case 3: return <AudioCallScreen onComplete={goToNextStep} />
+      case 4: return <FakeQuiz onComplete={goToNextStep} />
+      case 5: return <ClownVideo videoSrc="/videos/payaso-vidrio.mp4" onComplete={goToNextStep} />
+      case 6: return <DantePodcast onComplete={goToNextStep} />
+      case 7: return <ClownVideo videoSrc="/videos/payaso-completo.mp4" showSoundPrompt onComplete={goToNextStep} />
+      case 8: return <LockScreenNotification onOpen={goToNextStep} />
+      case 9: return <WhatsAppChat onComplete={goToNextStep} />
+      default: return null
     }
   }
 
@@ -111,7 +97,7 @@ export function FunnelOrchestrator() {
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentStep}
+          key={stepIndex}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
