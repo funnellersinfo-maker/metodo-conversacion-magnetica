@@ -8,9 +8,7 @@ interface AudioCallScreenProps {
 }
 
 // ============ COPIE EXACTO DE LA LLAMADA — Sincronización Calibrada a 68.28s ============
-// Timestamps convertidos de timecode 24fps a segundos
 // Los huecos entre bloques son INTENCIONALES — coinciden con respiraciones/suspiros del actor
-// NO agregar buffers artificiales — estos tiempos son quirúrgicos
 const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 0.83, end: 2.63, text: 'Hey... no cuelgues.' },
   { start: 3.21, end: 5.42, text: 'Tienes suerte de haber atendido.' },
@@ -47,7 +45,8 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
   const [activeCaptionIndex, setActiveCaptionIndex] = useState(-1)
   const [callEnded, setCallEnded] = useState(false)
 
-  // ============ WORD REVEAL — Lento, cinematográfico, en sync con audio ============
+  // ============ WORD REVEAL ============
+  // Calcula cuántas palabras deben ser visibles según el progreso del audio
   const activeCaption = activeCaptionIndex >= 0 ? CAPTIONS[activeCaptionIndex] : null
   const words = activeCaption?.text.split(' ') || []
 
@@ -58,48 +57,39 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const elapsed = currentTime - activeCaption.start
 
     if (elapsed >= 0) {
-      // Revelar palabras a lo largo del 90% de la duración del bloque
-      // 10% final = pausa con todo el texto visible antes del siguiente bloque
-      const revealPortion = 0.90
-      const revealTime = captionDuration * revealPortion
+      // Revelar palabras a lo largo del 85% de la duración del bloque
+      // 15% final = todo visible antes de transicionar al siguiente bloque
+      const revealTime = captionDuration * 0.85
 
       if (elapsed >= revealTime) {
         visibleWords = totalWords
       } else {
         const progress = elapsed / revealTime
-        // Pausa inicial del 8% antes de empezar a revelar
-        // Esto crea el efecto de "escribiendo" — pausa → palabra → pausa → palabra
-        const adjustedProgress = Math.max(0, (progress - 0.08) / 0.92)
-        // Math.floor = revelado MÁS LENTO que Math.ceil
-        // Cada palabra necesita más progreso para aparecer
-        visibleWords = Math.min(totalWords, Math.floor(adjustedProgress * totalWords) + (adjustedProgress > 0 ? 1 : 0))
+        // Pausa inicial del 10% — efecto de "escribiendo"
+        const adjustedProgress = Math.max(0, (progress - 0.10) / 0.90)
+        visibleWords = Math.min(totalWords, Math.ceil(adjustedProgress * totalWords))
       }
     }
   }
 
-  // Keep onComplete ref updated
+  // Construir el texto visible: join de palabras con espacios
+  // Solo la ÚLTIMA palabra visible va en span propio para el glow
+  const previousText = visibleWords > 1 ? words.slice(0, visibleWords - 1).join(' ') + ' ' : ''
+  const lastWord = visibleWords > 0 ? words[visibleWords - 1] : ''
+
   useEffect(() => {
     onCompleteRef.current = onComplete
   }, [onComplete])
 
-  // ============ COMPLETE HANDLER — RED screen + transition ============
   const triggerComplete = () => {
     if (completedRef.current) return
     completedRef.current = true
-
-    if (bgAudioRef.current) {
-      bgAudioRef.current.pause()
-    }
-
+    if (bgAudioRef.current) bgAudioRef.current.pause()
     setCallEnded(true)
-
-    const t1 = setTimeout(() => {
-      onCompleteRef.current()
-    }, 800)
+    const t1 = setTimeout(() => onCompleteRef.current(), 800)
     timersRef.current.push(t1)
   }
 
-  // ============ MAIN AUDIO SETUP ============
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -109,7 +99,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     bgAudio.volume = 0.18
     bgAudioRef.current = bgAudio
 
-    // Web Audio API for frequency bars — SOLO para visualización
     try {
       const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaElementSource(audio)
@@ -119,13 +108,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       analyser.connect(audioCtx.destination)
       analyserRef.current = analyser
 
-      // Loop separado SOLO para barras de frecuencia — NO toca estado de tiempo/captions
       const updateFrequency = () => {
         if (analyserRef.current && !completedRef.current) {
           const data = new Uint8Array(analyserRef.current.frequencyBinCount)
           analyserRef.current.getByteFrequencyData(data)
-          const normalized = Array.from(data).map(v => Math.round((v / 255) * 100))
-          setFrequencyData(normalized)
+          setFrequencyData(Array.from(data).map(v => Math.round((v / 255) * 100)))
         }
         animFrameRef.current = requestAnimationFrame(updateFrequency)
       }
@@ -147,17 +134,11 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
     const handleEnded = () => triggerComplete()
 
-    // ============ TIMEUPDATE — Actualiza tiempo y captions ~4x/seg ============
-    // ESTABLE en móvil — NO causa los 60 re-renders/seg que colgaban la app
     const handleTimeUpdate = () => {
       const t = audio.currentTime
       setCurrentTime(t)
-
-      // Find active caption — -1 = entre bloques (texto desaparece)
       const idx = CAPTIONS.findIndex(c => t >= c.start && t < c.end)
       setActiveCaptionIndex(idx)
-
-      // Start background music at second 40
       if (!bgStartedRef.current && t >= 40) {
         bgStartedRef.current = true
         bgAudio.play().catch(() => {})
@@ -167,7 +148,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('timeupdate', handleTimeUpdate)
 
-    // Keep-alive — si el audio se pausa solo, reanudar
     const keepAlive = setInterval(() => {
       if (audio.paused && !audio.ended && !completedRef.current) {
         audio.play().catch(() => {})
@@ -177,9 +157,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
     const handlePause = () => {
       if (!completedRef.current) {
         setTimeout(() => {
-          if (!audio.ended && !completedRef.current) {
-            audio.play().catch(() => {})
-          }
+          if (!audio.ended && !completedRef.current) audio.play().catch(() => {})
         }, 100)
       }
     }
@@ -207,7 +185,6 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
 
   const audioDuration = 68.28
   const progressPercent = Math.min((currentTime / audioDuration) * 100, 100)
-
   const RING_RADIUS = 52
   const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
   const ringDashOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE
@@ -220,7 +197,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* === RED "Llamada finalizada" overlay === */}
+      {/* RED overlay */}
       <AnimatePresence>
         {callEnded && (
           <motion.div
@@ -230,126 +207,47 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
             transition={{ duration: 0.5 }}
           >
             <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #B71C1C, #D32F2F, #C62828)' }} />
-
-            <motion.div
-              style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'rgba(255,255,255,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 20,
-              }}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none" style={{ transform: 'rotate(135deg)' }}>
-                <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-              </svg>
+            <motion.div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none" style={{ transform: 'rotate(135deg)' }}><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
             </motion.div>
-
-            <motion.span
-              style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(1rem, 3.5vw, 1.3rem)',
-                fontWeight: 700, color: '#FFFFFF',
-                letterSpacing: '0.2em', textTransform: 'uppercase',
-                textShadow: '0 2px 20px rgba(0,0,0,0.4)',
-              }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-            >
-              Llamada finalizada
-            </motion.span>
-
-            <motion.span
-              style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.7rem, 2vw, 0.85rem)',
-                fontWeight: 400, color: 'rgba(255,255,255,0.7)',
-                letterSpacing: '0.1em', marginTop: 8,
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
-            >
-              {formatTime(currentTime)}
-            </motion.span>
+            <motion.span style={{ fontFamily: "'Cinzel', serif", fontSize: 'clamp(1rem, 3.5vw, 1.3rem)', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em', textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.4)' }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>Llamada finalizada</motion.span>
+            <motion.span style={{ fontFamily: "'Cinzel', serif", fontSize: 'clamp(0.7rem, 2vw, 0.85rem)', fontWeight: 400, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', marginTop: 8 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.4 }}>{formatTime(currentTime)}</motion.span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Subtle bg glow */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(76, 175, 80, 0.04) 0%, transparent 70%), #0a0a0a',
-      }} />
+      {/* BG glow */}
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(76, 175, 80, 0.04) 0%, transparent 70%), #0a0a0a' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)', opacity: 0.5 }} />
 
-      {/* Scan lines overlay */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
-        opacity: 0.5,
-      }} />
-
-      {/* Audio element */}
       <audio ref={audioRef} src="/audio/call-audio.mp3" preload="auto" crossOrigin="anonymous" />
 
-      {/* === TOP: Profile with circular progress ring === */}
+      {/* TOP: Profile ring */}
       <div className="relative z-10 mt-14 flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <span style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: 'clamp(0.6rem, 1.8vw, 0.72rem)',
-            fontWeight: 500, color: '#4CAF50',
-            letterSpacing: '0.25em', textTransform: 'uppercase',
-            textShadow: '0 0 12px rgba(76, 175, 80, 0.3)',
-          }}>
-            EN LLAMADA
-          </span>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: 'clamp(0.6rem, 1.8vw, 0.72rem)', fontWeight: 500, color: '#4CAF50', letterSpacing: '0.25em', textTransform: 'uppercase', textShadow: '0 0 12px rgba(76, 175, 80, 0.3)' }}>EN LLAMADA</span>
         </motion.div>
-
-        <motion.div
-          className="mt-5 relative flex items-center justify-center"
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.6, type: 'spring' }}
-        >
+        <motion.div className="mt-5 relative flex items-center justify-center" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4, duration: 0.6, type: 'spring' }}>
           <svg width="124" height="124" viewBox="0 0 124 124" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
             <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.1)" strokeWidth="3" strokeLinecap="round" />
             <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="#4CAF50" strokeWidth="3" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease', filter: 'drop-shadow(0 0 6px rgba(76, 175, 80, 0.5))' }} />
             <circle cx="62" cy="62" r={RING_RADIUS} fill="none" stroke="rgba(76, 175, 80, 0.15)" strokeWidth="8" strokeLinecap="round" strokeDasharray={RING_CIRCUMFERENCE} strokeDashoffset={ringDashOffset} style={{ transition: 'stroke-dashoffset 0.3s ease' }} />
           </svg>
-
-          <div style={{
-            width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden',
-            boxShadow: '0 0 25px rgba(76, 175, 80, 0.2), 0 0 50px rgba(76, 175, 80, 0.1)',
-          }}>
+          <div style={{ width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 0 25px rgba(76, 175, 80, 0.2), 0 0 50px rgba(76, 175, 80, 0.1)' }}>
             <img src="/images/dante-profile.jpg" alt="Dante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </motion.div>
-
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.5 }}>
-          <h1 style={{
-            fontFamily: "'Cinzel', serif", fontSize: 'clamp(1.2rem, 4.5vw, 1.5rem)',
-            fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.18em', marginTop: '0.75rem',
-            textShadow: '0 2px 15px rgba(0,0,0,0.8)',
-          }}>
-            DANTE
-          </h1>
+          <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 'clamp(1.2rem, 4.5vw, 1.5rem)', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.18em', marginTop: '0.75rem', textShadow: '0 2px 15px rgba(0,0,0,0.8)' }}>DANTE</h1>
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Palabra por palabra, sin overflow === */}
-      {/*
-        ARQUITECTURA:
-        - position:absolute + left:0;right:0 + padding = ancho INAMOVIBLE
-        - Cada palabra visible = <span> inline → navegador wrappea en espacios
-        - wordBreak:normal = NUNCA corta palabras, baja enteras a siguiente línea
-        - overflow:hidden = red de seguridad anti-desbordamiento
-        - Última palabra visible = efecto glow cinematográfico #66FF66
+      {/* ============ TELEPROMPTER ============
+        ARQUITECTURA A PRUEBA DE BALAS:
+        - Texto visible = STRING ÚNICO con .join(' ')
+        - El navegador SIEMPRE wrappea en espacios → NUNCA corta palabras
+        - Solo 2 elementos: <span> texto anterior + <span> última palabra con glow
+        - NO hay spans individuales por palabra → IMPOSIBLE cortar
       */}
       <div style={{
         position: 'absolute',
@@ -357,16 +255,15 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         left: 0,
         right: 0,
         boxSizing: 'border-box',
-        padding: '0 5vw',
+        padding: '0 6vw',
         zIndex: 10,
         pointerEvents: 'none',
         transform: 'translateY(-50%)',
       }}>
         <div style={{
-          maxWidth: '400px',
+          maxWidth: '380px',
           margin: '0 auto',
           boxSizing: 'border-box',
-          overflow: 'hidden',
         }}>
           {activeCaption && visibleWords > 0 && (
             <p style={{
@@ -380,75 +277,50 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               textAlign: 'center',
               boxSizing: 'border-box',
               width: '100%',
-              wordBreak: 'normal',
-              overflowWrap: 'normal',
+              whiteSpace: 'pre-wrap',
             }}>
-              {words.slice(0, visibleWords).map((word, i) => {
-                const isLast = i === visibleWords - 1
-                return (
-                  <span
-                    key={`w-${activeCaptionIndex}-${i}`}
-                    style={{
-                      display: 'inline',
-                      color: isLast ? '#66FF66' : 'rgba(76, 175, 80, 0.9)',
-                      textShadow: isLast
-                        ? '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)'
-                        : '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
-                      transition: 'color 0.3s ease, text-shadow 0.3s ease',
-                      marginLeft: i === 0 ? 0 : '0.28em',
-                    }}
-                  >
-                    {word}
-                  </span>
-                )
-              })}
+              {/* Palabras ya reveladas — TEXTO PLANO, el navegador wrappea perfecto */}
+              {previousText && (
+                <span style={{
+                  color: 'rgba(76, 175, 80, 0.9)',
+                  textShadow: '0 0 10px rgba(76, 175, 80, 0.3), 0 0 20px rgba(76, 175, 80, 0.1)',
+                  transition: 'color 0.3s ease',
+                }}>
+                  {previousText}
+                </span>
+              )}
+              {/* Última palabra — BRILLA con efecto glow */}
+              <span
+                key={`last-${activeCaptionIndex}-${visibleWords}`}
+                style={{
+                  color: '#66FF66',
+                  textShadow: '0 0 8px rgba(102, 255, 102, 0.7), 0 0 20px rgba(76, 175, 80, 0.4), 0 0 40px rgba(76, 175, 80, 0.2)',
+                  transition: 'color 0.3s ease, text-shadow 0.3s ease',
+                }}
+              >
+                {lastWord}
+              </span>
             </p>
           )}
         </div>
       </div>
 
-      {/* === BOTTOM: Sound bar + time === */}
+      {/* BOTTOM: Sound bar + time */}
       <div className="relative z-10 mt-auto w-full px-5 pb-10">
         <div className="flex items-end justify-center gap-[2px]" style={{ height: '32px', marginBottom: '10px' }}>
           {frequencyData.slice(0, 24).map((val, i) => {
             const height = isPlaying ? Math.max(4, (val / 100) * 28) : 4
             return (
-              <motion.div
-                key={i}
-                style={{
-                  width: '3px', borderRadius: '2px',
-                  backgroundColor: isPlaying ? `rgba(76, 175, 80, ${0.4 + (val / 100) * 0.6})` : 'rgba(76, 175, 80, 0.15)',
-                  height,
-                  boxShadow: val > 50 ? `0 0 4px rgba(76, 175, 80, 0.3)` : 'none',
-                }}
-                animate={{ height }}
-                transition={{ duration: 0.08 }}
-              />
+              <motion.div key={i} style={{ width: '3px', borderRadius: '2px', backgroundColor: isPlaying ? `rgba(76, 175, 80, ${0.4 + (val / 100) * 0.6})` : 'rgba(76, 175, 80, 0.15)', height, boxShadow: val > 50 ? `0 0 4px rgba(76, 175, 80, 0.3)` : 'none' }} animate={{ height }} transition={{ duration: 0.08 }} />
             )
           })}
         </div>
-
         <div className="w-full">
           <div className="flex justify-start mb-2">
-            <span style={{
-              fontFamily: "'Cinzel', serif", fontSize: 'clamp(0.65rem, 2vw, 0.78rem)',
-              fontWeight: 600, color: '#4CAF50', letterSpacing: '0.05em',
-              fontVariantNumeric: 'tabular-nums', textShadow: '0 0 8px rgba(76, 175, 80, 0.2)',
-            }}>
-              {formatTime(currentTime)}
-            </span>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: 'clamp(0.65rem, 2vw, 0.78rem)', fontWeight: 600, color: '#4CAF50', letterSpacing: '0.05em', fontVariantNumeric: 'tabular-nums', textShadow: '0 0 8px rgba(76, 175, 80, 0.2)' }}>{formatTime(currentTime)}</span>
           </div>
-
           <div style={{ width: '100%', height: '3px', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-            <motion.div
-              style={{
-                height: '100%', background: 'linear-gradient(90deg, #1B5E20, #4CAF50)',
-                borderRadius: '2px', width: `${progressPercent}%`,
-                boxShadow: '0 0 6px rgba(76, 175, 80, 0.3)',
-              }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.3 }}
-            />
+            <motion.div style={{ height: '100%', background: 'linear-gradient(90deg, #1B5E20, #4CAF50)', borderRadius: '2px', width: `${progressPercent}%`, boxShadow: '0 0 6px rgba(76, 175, 80, 0.3)' }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.3 }} />
           </div>
         </div>
       </div>
