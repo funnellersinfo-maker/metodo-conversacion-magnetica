@@ -1,16 +1,22 @@
 ---
-Task ID: 1
+Task ID: 2
 Agent: Main Agent
-Task: Lock/freeze current codebase state so funnel components are never accidentally modified
+Task: Redesign FakeQuiz with Copy Films luxury style, fix 50% lighten, create FOMO question
 
 Work Log:
-- Checked git status — working tree clean, everything committed
-- Created git tag `v1.0-llamada-locked` with descriptive message marking this as the locked/stable state
-- Created `.ai-protection` file documenting ALL protected files with reasons and restoration commands
-- Committed `.ai-protection` to git
+- Analyzed reference image (Copy Films) via VLM: black bg (#000), red accents (#CC0000), gray text (#CCC), sans-serif, shield icon, horizontal lines
+- Completely rewrote FakeQuiz.tsx with Copy Films aesthetic
+- Changed from 3 questions to 1 strategic FOMO question: "¿Cuántos hombres están viendo esto mismo ahora... y están a punto de adelantarse?"
+- Fixed critical 50% lighten bug: replaced `opacity: 0.5` (which made quiz DISAPPEAR) with white overlay `rgba(255,255,255,0.50)` on z-10 layer, video on z-0, quiz content on z-20
+- Layer stack: Video (bottom) → White wash 50% (middle) → Quiz content faded to 35% (top)
+- Added shield icon with red border, "VERIFICACIÓN DE ACCESO" header with horizontal lines
+- Switched font from Cinzel to Inter (matching Copy Films sans-serif style)
+- Added Inter font to Google Fonts import in layout.tsx
+- Red accent bar on selected option
+- Deployed to Cloudflare Pages
 
 Stage Summary:
-- Git tag `v1.0-llamada-locked` created — this is an immutable snapshot
-- Protected files: AudioCallScreen.tsx, FunnelOrchestrator.tsx, FakeQuiz.tsx, PreCallVideo.tsx, CinematicLanding.tsx, all video/audio assets
-- Restoration command: `git checkout v1.0-llamada-locked -- <file>` or `git checkout v1.0-llamada-locked -- src/components/funnel/`
-- .ai-protection file serves as a contract that any AI agent must read and respect before modifying code
+- FakeQuiz completely redesigned with Copy Films style
+- 50% lighten effect now works correctly (white wash, not opacity fade)
+- Single FOMO question creates urgency/competition
+- Deployed at https://metodo-dante.pages.dev
