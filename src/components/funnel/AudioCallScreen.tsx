@@ -7,17 +7,25 @@ interface AudioCallScreenProps {
   onComplete: () => void
 }
 
-// Teleprompter captions synced to audio progress (time → text)
+// Teleprompter captions — REAL transcript from call audio, synced to timestamps
 const CAPTIONS: { start: number; end: number; text: string }[] = [
-  { start: 0, end: 5, text: 'Conectando...' },
-  { start: 5, end: 12, text: '¿Alguna vez sentiste que ella te ignoraba sin razón?' },
-  { start: 12, end: 20, text: 'Lo que no sabes es que su cerebro ya decidió en 7 segundos.' },
-  { start: 20, end: 28, text: 'No es tu físico. No es tu dinero. Es tu PATRÓN de conversación.' },
-  { start: 28, end: 36, text: 'El 99% de los hombres usan el mismo formato aburrido...' },
-  { start: 36, end: 44, text: 'Y son archivados en silencio antes de la primera cita.' },
-  { start: 44, end: 52, text: 'Pero existe un cortocircuito biológico...' },
-  { start: 52, end: 60, text: 'Una forma de hackear su atención de inmediato.' },
-  { start: 60, end: 68, text: 'Y lo que viene después... lo cambiará todo.' },
+  { start: 0, end: 2.5, text: 'Conectando...' },
+  { start: 2.5, end: 5.5, text: 'Hey, no cuelgues.' },
+  { start: 5.5, end: 9, text: 'Tienes suerte de haber atendido.' },
+  { start: 9, end: 14, text: 'La mayoría de los hombres están ahí fuera gritando por atención...' },
+  { start: 14, end: 18, text: 'Y tú... tú acabas de entrar en la frecuencia correcta.' },
+  { start: 18, end: 23, text: 'Hace años la atracción era una especie de alquimia.' },
+  { start: 23, end: 28, text: 'Había misterio, había silencios que decían más que mil palabras.' },
+  { start: 28, end: 33, text: 'Pero algo se rompió.' },
+  { start: 33, end: 39, text: 'El mundo se llenó de plantillas baratas y frases de copia y pega...' },
+  { start: 39, end: 44, text: 'Que ella ya detecta en menos de siete segundos.' },
+  { start: 44, end: 48, text: 'Te has vuelto predecible.' },
+  { start: 48, end: 52, text: 'Y en la biología del deseo... lo predecible es invisible.' },
+  { start: 52, end: 56, text: 'Ella no te ignora porque no le gustes.' },
+  { start: 56, end: 60, text: 'Te ignora porque ya sabe exactamente qué vas a decir después.' },
+  { start: 60, end: 63, text: 'Eres un eco más en su bandeja de entrada.' },
+  { start: 63, end: 66, text: 'Pero escucha bien... porque lo que estoy a punto de revelarte es el cortocircuito.' },
+  { start: 66, end: 68.3, text: 'Un sistema que ella no puede ignorar.' },
 ]
 
 export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
@@ -262,29 +270,40 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — Clean text only, no box === */}
+      {/* === TELEPROMPTER — Tubular/reel effect, real transcript === */}
       <motion.div
-        className="relative z-10 mt-6 w-full px-8"
+        className="relative z-10 mt-6 w-full px-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}
       >
-        <div style={{ minHeight: '48px', textAlign: 'center' }}>
+        <div style={{ minHeight: '54px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+          {/* Subtle top/bottom fade for reel/tubular feel */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '30%',
+            background: 'linear-gradient(to bottom, #0a0a0a, transparent)',
+            pointerEvents: 'none', zIndex: 2,
+          }} />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '30%',
+            background: 'linear-gradient(to top, #0a0a0a, transparent)',
+            pointerEvents: 'none', zIndex: 2,
+          }} />
           <AnimatePresence mode="wait">
             <motion.p
               key={activeCaption}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -14, filter: 'blur(6px)' }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               style={{
                 fontFamily: "'Cinzel', serif",
-                fontSize: 'clamp(0.75rem, 2.4vw, 0.9rem)',
+                fontSize: 'clamp(0.78rem, 2.5vw, 0.92rem)',
                 fontWeight: 500,
-                color: 'rgba(76, 175, 80, 0.85)',
-                lineHeight: 1.5,
-                letterSpacing: '0.04em',
-                textShadow: '0 0 12px rgba(76, 175, 80, 0.25)',
+                color: 'rgba(76, 175, 80, 0.9)',
+                lineHeight: 1.6,
+                letterSpacing: '0.03em',
+                textShadow: '0 0 14px rgba(76, 175, 80, 0.3), 0 0 28px rgba(76, 175, 80, 0.1)',
               }}
             >
               {activeCaption}
