@@ -31,17 +31,17 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
-  const messagesRef = useRef(messages)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const incomingSoundRef = useRef<HTMLAudioElement | null>(null)
+  const durationsLoadedRef = useRef(false)
+
+  // Refs for functions to break circular dependencies
+  const playVoiceRef = useRef<(index: number) => void>(() => {})
+  const arriveAndPlayRef = useRef<(index: number) => void>(() => {})
 
   useEffect(() => {
     onCompleteRef.current = onComplete
   }, [onComplete])
-
-  useEffect(() => {
-    messagesRef.current = messages
-  }, [messages])
 
   // Preload incoming message sound
   useEffect(() => {
@@ -52,7 +52,6 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
 
   const playIncomingSound = useCallback(() => {
     if (incomingSoundRef.current) {
-      // Clone to allow overlapping plays
       const sound = incomingSoundRef.current.cloneNode() as HTMLAudioElement
       sound.volume = 0.7
       sound.play().catch(() => {})
@@ -65,106 +64,130 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     }
   }, [])
 
-  useEffect(() => {
-    setTimeout(scrollToBottom, 150)
-  }, [messages, credentialStep, scrollToBottom])
-
-  // Load audio durations
+  // ── Load audio durations — uses FUNCTIONAL state update to NOT overwrite arrived status ──
   useEffect(() => {
     const loadDurations = async () => {
-      const updated = [...messages]
-      for (let i = 0; i < updated.length; i++) {
-        const audio = new Audio(updated[i].src)
+      for (let i = 0; i < 5; i++) {
+        const src = [
+          '/audio/wha-voices/voice1.wav',
+          '/audio/wha-voices/voice2.wav',
+          '/audio/wha-voices/voice3.wav',
+          '/audio/wha-voices/voice4.wav',
+          '/audio/wha-voices/voice5.wav',
+        ][i]
+
+        const audio = new Audio(src)
         audio.preload = 'metadata'
-        await new Promise<void>((resolve) => {
-          audio.addEventListener('loadedmetadata', () => {
-            updated[i] = { ...updated[i], duration: audio.duration }
-            resolve()
-          })
-          audio.addEventListener('error', () => resolve())
-          setTimeout(() => resolve(), 3000)
+        const dur = await new Promise<number>((resolve) => {
+          audio.addEventListener('loadedmetadata', () => resolve(audio.duration || 0))
+          audio.addEventListener('error', () => resolve(0))
+          setTimeout(() => resolve(0), 3000)
+        })
+
+        // Use FUNCTIONAL update — only update duration, preserve all other state (arrived, playing, etc.)
+        setMessages(prev => {
+          const next = [...prev]
+          next[i] = { ...next[i], duration: dur }
+          return next
         })
       }
-      setMessages(updated)
+      durationsLoadedRef.current = true
     }
     loadDurations()
   }, [])
 
-  // First message arrives after entering chat — user must click play
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Play incoming sound
-      playIncomingSound()
-      setMessages(prev => {
-        const next = [...prev]
-        next[0] = { ...next[0], arrived: true }
-        return next
-      })
-      setTimeout(scrollToBottom, 200)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [scrollToBottom, playIncomingSound])
-
-  const handleUserPlay = useCallback(() => {
-    playVoice(0)
-  }, [])
-
-  const arriveAndPlay = useCallback((index: number) => {
+  // ── playVoice — assigned to ref to avoid circular deps ──
+  playVoiceRef.current = (index: number) => {
     if (index >= 5) return
 
-    // Play incoming sound
-    playIncomingSound()
-
-    setMessages(prev => {
-      const next = [...prev]
-      next[index] = { ...next[index], arrived: true }
-      return next
-    })
-
-    setTimeout(scrollToBottom, 200)
-
-    // Auto-play after short delay
-    setTimeout(() => {
-      playVoice(index)
-    }, 600)
-  }, [scrollToBottom, playIncomingSound])
-
-  const playVoice = useCallback((index: number) => {
+    // Stop any currently playing audio
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ''
+      audioRef.current = null
     }
 
-    const msg = messagesRef.current[index]
-    const audio = new Audio(msg.src)
-    audioRef.current = audio
-
+    // Get current message source
     setMessages(prev => {
+      const msg = prev[index]
+      if (!msg) return prev
+
+      const audio = new Audio(msg.src)
+      audioRef.current = audio
+
+      // Mark as playing
       const next = [...prev]
       next[index] = { ...next[index], playing: true }
       return next
     })
 
-    audio.addEventListener('timeupdate', () => {
-      if (audio.duration > 0) {
-        const prog = (audio.currentTime / audio.duration) * 100
-        setMessages(prev => {
-          const next = [...prev]
-          next[index] = { ...next[index], progress: prog }
-          return next
-        })
+    // Small delay to ensure audio element is created after state update
+    setTimeout(() => {
+      if (!audioRef.current) return
+      const audio = audioRef.current
+      const currentIndex = index
 
-        if (prog >= 99 && !messagesRef.current[index].played) {
+      audio.addEventListener('timeupdate', () => {
+        if (audio.duration > 0) {
+          const prog = (audio.currentTime / audio.duration) * 100
           setMessages(prev => {
             const next = [...prev]
-            next[index] = { ...next[index], played: true, playing: false, progress: 100 }
+            if (next[currentIndex]) {
+              next[currentIndex] = { ...next[currentIndex], progress: prog }
+            }
             return next
           })
 
-          if (index < 4) {
-            setTimeout(() => arriveAndPlay(index + 1), 500)
-          } else {
-            // Last voice done → credentials → TikTok
+          if (prog >= 99) {
+            // Mark as played — use functional update to check current state
+            setMessages(prev => {
+              const next = [...prev]
+              if (next[currentIndex] && !next[currentIndex].played) {
+                next[currentIndex] = { ...next[currentIndex], played: true, playing: false, progress: 100 }
+
+                // Trigger next message or credentials
+                if (currentIndex < 4) {
+                  setTimeout(() => arriveAndPlayRef.current(currentIndex + 1), 500)
+                } else {
+                  // Last voice done → send credentials → TikTok
+                  setTimeout(() => {
+                    playIncomingSound()
+                    setCredentialStep(1)
+                    setTimeout(scrollToBottom, 200)
+                    setTimeout(() => {
+                      playIncomingSound()
+                      setCredentialStep(2)
+                      setTimeout(scrollToBottom, 200)
+                      setTimeout(() => {
+                        if (!completedRef.current) {
+                          completedRef.current = true
+                          onCompleteRef.current()
+                        }
+                      }, 4000)
+                    }, 800)
+                  }, 1000)
+                }
+              }
+              return next
+            })
+          }
+        }
+      })
+
+      audio.addEventListener('ended', () => {
+        setMessages(prev => {
+          const next = [...prev]
+          if (next[currentIndex]) {
+            next[currentIndex] = { ...next[currentIndex], playing: false, progress: 100, played: true }
+          }
+          return next
+        })
+
+        // Only trigger next if not already handled by timeupdate
+        setMessages(prev => {
+          if (currentIndex < 4 && prev[currentIndex]?.played) {
+            setTimeout(() => arriveAndPlayRef.current(currentIndex + 1), 500)
+          } else if (currentIndex === 4 && prev[currentIndex]?.played && !completedRef.current) {
             setTimeout(() => {
               playIncomingSound()
               setCredentialStep(1)
@@ -182,43 +205,67 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
               }, 800)
             }, 1000)
           }
-        }
-      }
+          return prev
+        })
+      })
+
+      audio.play().catch(() => {})
+    }, 50)
+  }
+
+  // ── arriveAndPlay — assigned to ref to avoid circular deps ──
+  arriveAndPlayRef.current = (index: number) => {
+    if (index >= 5) return
+
+    // Play incoming sound EXACTLY as message appears
+    playIncomingSound()
+
+    // Set message as arrived — it will now render and stay
+    setMessages(prev => {
+      const next = [...prev]
+      next[index] = { ...next[index], arrived: true }
+      return next
     })
 
-    audio.addEventListener('ended', () => {
+    // Scroll to show the new message
+    setTimeout(scrollToBottom, 150)
+    setTimeout(scrollToBottom, 400)
+
+    // Auto-play after short delay
+    setTimeout(() => {
+      playVoiceRef.current(index)
+    }, 600)
+  }
+
+  // ── First message arrives after entering chat ──
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Play incoming sound EXACTLY as message appears
+      playIncomingSound()
+
       setMessages(prev => {
         const next = [...prev]
-        next[index] = { ...next[index], playing: false, progress: 100, played: true }
+        next[0] = { ...next[0], arrived: true }
         return next
       })
 
-      if (!messagesRef.current[index].played) {
-        if (index < 4) {
-          setTimeout(() => arriveAndPlay(index + 1), 500)
-        } else {
-          setTimeout(() => {
-            playIncomingSound()
-            setCredentialStep(1)
-            setTimeout(scrollToBottom, 200)
-            setTimeout(() => {
-              playIncomingSound()
-              setCredentialStep(2)
-              setTimeout(scrollToBottom, 200)
-              setTimeout(() => {
-                if (!completedRef.current) {
-                  completedRef.current = true
-                  onCompleteRef.current()
-                }
-              }, 4000)
-            }, 800)
-          }, 1000)
-        }
-      }
-    })
+      setTimeout(scrollToBottom, 150)
+      setTimeout(scrollToBottom, 400)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [scrollToBottom, playIncomingSound])
 
-    audio.play().catch(() => {})
-  }, [arriveAndPlay, scrollToBottom, playIncomingSound])
+  // ── Scroll on credential changes ──
+  useEffect(() => {
+    if (credentialStep > 0) {
+      setTimeout(scrollToBottom, 150)
+      setTimeout(scrollToBottom, 400)
+    }
+  }, [credentialStep, scrollToBottom])
+
+  const handleUserPlay = useCallback(() => {
+    playVoiceRef.current(0)
+  }, [])
 
   const formatDuration = (sec: number) => {
     if (!sec || !isFinite(sec)) return '0:00'
@@ -234,7 +281,7 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
 
   const getWaveformBars = (msgIndex: number) => {
     const bars: number[] = []
-    for (let j = 0; j < 30; j++) {
+    for (let j = 0; j < 35; j++) {
       const seed = Math.sin(msgIndex * 127.1 + j * 311.7) * 43758.5453
       const normalized = seed - Math.floor(seed)
       bars.push(4 + normalized * 14)
@@ -400,14 +447,14 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
               style={{
                 display: 'flex',
                 justifyContent: 'flex-start',
-                marginBottom: 4,
+                marginBottom: 5,
               }}
             >
               <div style={{
                 background: '#1f2c34',
                 borderRadius: '8px 0 8px 8px',
-                padding: '7px 8px 5px',
-                maxWidth: '80%',
+                padding: '8px 10px 6px',
+                maxWidth: '88%',
                 position: 'relative',
                 boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
               }}>
@@ -423,15 +470,15 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
                 }} />
 
                 {/* Voice content */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {/* Play/Pause button */}
                   {msg.needsUserPlay && !msg.playing && !msg.played ? (
                     /* CLICKABLE play button for first message with shimmer */
                     <button
                       onClick={handleUserPlay}
                       style={{
-                        width: 34,
-                        height: 34,
+                        width: 36,
+                        height: 36,
                         borderRadius: '50%',
                         background: '#25D366',
                         display: 'flex',
@@ -461,8 +508,8 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
                   ) : (
                     /* Normal play/pause indicator */
                     <div style={{
-                      width: 30,
-                      height: 30,
+                      width: 32,
+                      height: 32,
                       borderRadius: '50%',
                       background: '#25D366',
                       display: 'flex',
@@ -484,18 +531,18 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
                     </div>
                   )}
 
-                  {/* Waveform */}
+                  {/* Waveform — wider with more bars */}
                   <div style={{
                     flex: 1,
                     minWidth: 0,
-                    height: 26,
+                    height: 28,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1.5,
                     padding: '0 2px',
                   }}>
                     {getWaveformBars(i).map((barHeight, j) => {
-                      const filled = (j / 30) * 100 <= msg.progress
+                      const filled = (j / 35) * 100 <= msg.progress
                       return (
                         <div
                           key={j}
