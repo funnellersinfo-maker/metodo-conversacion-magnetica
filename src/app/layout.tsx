@@ -25,6 +25,9 @@ export default function RootLayout({
         <link rel="preload" href="/images/video-poster.jpg" as="image" />
         <link rel="preload" href="/videos/dante-llamando.mp4" as="video" />
         <link rel="preload" href="/audio/call-audio.mp3" as="audio" />
+        <link rel="prefetch" href="/audio/podcast.aac" as="audio" />
+        <link rel="prefetch" href="/videos/payaso-vol1.mp4" as="video" />
+        <link rel="prefetch" href="/images/podcast/cover.jpg" as="image" />
       </head>
       <body className="antialiased bg-black text-white overflow-hidden">
         {children}
