@@ -68,8 +68,8 @@ export function FunnelOrchestrator() {
 
   return (
     <>
-      {/* BRAND WATERMARK — hidden on whatsapp_notification (has its own bottom-center watermark) and tiktok_login */}
-      {!['whatsapp_notification', 'tiktok_login'].includes(currentStep) && (
+      {/* BRAND WATERMARK — hidden on whatsapp_notification, whatsapp_chat (integrated in header), and tiktok_login */}
+      {!['whatsapp_notification', 'whatsapp_chat', 'tiktok_login'].includes(currentStep) && (
         <div
           className="fixed top-5 left-5 z-[999] flex items-center gap-2 pointer-events-none select-none"
           style={{ opacity: 0.85 }}
