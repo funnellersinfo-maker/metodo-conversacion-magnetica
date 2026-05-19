@@ -10,8 +10,10 @@ import FakeQuiz from './FakeQuiz'
 import PodcastScreen from './PodcastScreen'
 import ClownVideoScreen from './ClownVideoScreen'
 import WhatsAppNotification from './WhatsAppNotification'
+import WhatsAppChatScreen from './WhatsAppChatScreen'
+import TikTokLoginScreen from './TikTokLoginScreen'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video' | 'whatsapp_notification'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video' | 'whatsapp_notification' | 'whatsapp_chat' | 'tiktok_login'
 
 const stepOrder: FunnelStep[] = [
   'landing',
@@ -22,6 +24,8 @@ const stepOrder: FunnelStep[] = [
   'podcast',
   'clown_video',
   'whatsapp_notification',
+  'whatsapp_chat',
+  'tiktok_login',
 ]
 
 export function FunnelOrchestrator() {
@@ -53,6 +57,10 @@ export function FunnelOrchestrator() {
         return <ClownVideoScreen onComplete={goToNextStep} />
       case 'whatsapp_notification':
         return <WhatsAppNotification onComplete={goToNextStep} />
+      case 'whatsapp_chat':
+        return <WhatsAppChatScreen onComplete={goToNextStep} />
+      case 'tiktok_login':
+        return <TikTokLoginScreen onComplete={goToNextStep} />
       default:
         return null
     }
@@ -60,33 +68,35 @@ export function FunnelOrchestrator() {
 
   return (
     <>
-      {/* BRAND WATERMARK — fixed top-left on ALL screens */}
-      <div
-        className="fixed top-5 left-5 z-[999] flex items-center gap-2 pointer-events-none select-none"
-        style={{ opacity: 0.85 }}
-      >
+      {/* BRAND WATERMARK — hidden on whatsapp_notification (has its own bottom-center watermark) and tiktok_login */}
+      {!['whatsapp_notification', 'tiktok_login'].includes(currentStep) && (
         <div
-          style={{
-            width: 3,
-            height: 22,
-            backgroundColor: '#D32F2F',
-            borderRadius: 1,
-          }}
-        />
-        <span
-          style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: 11,
-            fontWeight: 500,
-            color: '#FFFFFF',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            lineHeight: 1,
-          }}
+          className="fixed top-5 left-5 z-[999] flex items-center gap-2 pointer-events-none select-none"
+          style={{ opacity: 0.85 }}
         >
-          MÉTODO MAGNÉTICO
-        </span>
-      </div>
+          <div
+            style={{
+              width: 3,
+              height: 22,
+              backgroundColor: '#D32F2F',
+              borderRadius: 1,
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: 11,
+              fontWeight: 500,
+              color: '#FFFFFF',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
+            }}
+          >
+            MÉTODO MAGNÉTICO
+          </span>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div

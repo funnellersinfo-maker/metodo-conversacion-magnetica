@@ -48,14 +48,6 @@ function RepeatIcon() {
   )
 }
 
-function PlayIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  )
-}
-
 function PauseIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -90,6 +82,9 @@ function formatTime(seconds: number): string {
 
 export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const glowRef = useRef<HTMLDivElement | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animFrameRef = useRef<number>(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -97,10 +92,11 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
   const [heartAnimating, setHeartAnimating] = useState(false)
   const hasCompletedRef = useRef(false)
 
-  /* ---- Audio element ---- */
+  /* ---- Audio element + Audio-reactive glow ---- */
   useEffect(() => {
     const audio = new Audio('/audio/podcast.aac')
     audio.preload = 'auto'
+    audio.crossOrigin = 'anonymous'
     audioRef.current = audio
 
     const onLoadedMetadata = () => {
@@ -130,7 +126,59 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
 
-    // Autoplay — try normal first, fallback to muted then unmute
+    // Set up Web Audio API analyser for reactive glow
+    const setupAnalyser = () => {
+      try {
+        const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+        const source = audioCtx.createMediaElementSource(audio)
+        const analyser = audioCtx.createAnalyser()
+        analyser.fftSize = 256
+        analyser.smoothingTimeConstant = 0.8
+        source.connect(analyser)
+        analyser.connect(audioCtx.destination)
+        analyserRef.current = analyser
+      } catch {
+        // Web Audio API not available — glow stays static
+      }
+    }
+
+    setupAnalyser()
+
+    // Animation loop — direct DOM manipulation, NO React state
+    const dataArray = new Uint8Array(128)
+
+    const animate = () => {
+      const glow = glowRef.current
+      const analyser = analyserRef.current
+
+      if (glow && analyser) {
+        analyser.getByteFrequencyData(dataArray)
+
+        // Average bass frequencies (0-10 bins) for a smooth pulse
+        let sum = 0
+        for (let i = 0; i < 10; i++) {
+          sum += dataArray[i]
+        }
+        const bassAvg = sum / 10 // 0-255
+
+        // Map to glow intensity (0.3 base → 1.0 max)
+        const intensity = 0.3 + (bassAvg / 255) * 0.7
+        const blurBase = 40 + (bassAvg / 255) * 60
+        const spreadBase = 20 + (bassAvg / 255) * 40
+        const scaleVal = 1 + (bassAvg / 255) * 0.06
+
+        glow.style.opacity = String(intensity)
+        glow.style.filter = `blur(${blurBase}px)`
+        glow.style.transform = `scale(${scaleVal})`
+        glow.style.boxShadow = `0 0 ${spreadBase}px ${spreadBase / 2}px rgba(204, 0, 0, ${0.15 + (bassAvg / 255) * 0.4})`
+      }
+
+      animFrameRef.current = requestAnimationFrame(animate)
+    }
+
+    animFrameRef.current = requestAnimationFrame(animate)
+
+    // Autoplay
     const attemptAutoplay = async () => {
       try {
         await audio.play()
@@ -138,12 +186,11 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
         try {
           audio.muted = true
           await audio.play()
-          // Unmute shortly after
           setTimeout(() => {
             audio.muted = false
           }, 100)
         } catch {
-          // Autoplay completely blocked — user must tap play
+          // Autoplay completely blocked
         }
       }
     }
@@ -156,21 +203,11 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
+      cancelAnimationFrame(animFrameRef.current)
       audio.pause()
       audio.src = ''
     }
   }, [onComplete])
-
-  /* ---- Toggle play/pause ---- */
-  const togglePlay = useCallback(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (isPlaying) {
-      audio.pause()
-    } else {
-      audio.play().catch(() => {})
-    }
-  }, [isPlaying])
 
   /* ---- Toggle heart ---- */
   const toggleLike = useCallback(() => {
@@ -198,6 +235,26 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
         overflow: 'hidden',
       }}
     >
+      {/* ── Audio-reactive red glow behind cover ── */}
+      <div
+        ref={glowRef}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: 'clamp(220px, 65vw, 260px)',
+          height: 'clamp(220px, 65vw, 260px)',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(204,0,0,0.6) 0%, rgba(204,0,0,0.2) 40%, transparent 70%)',
+          transform: 'translate(-50%, -65%) scale(1)',
+          filter: 'blur(40px)',
+          opacity: 0.3,
+          pointerEvents: 'none',
+          zIndex: 0,
+          willChange: 'opacity, filter, transform',
+        }}
+      />
+
       {/* ── Cover Art ── */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -211,6 +268,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           boxShadow:
             '0 8px 40px rgba(204, 0, 0, 0.25), 0 0 80px rgba(204, 0, 0, 0.1)',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <img
@@ -241,6 +300,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           lineHeight: 1.35,
           letterSpacing: '0.04em',
           maxWidth: '90%',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         EL MÉTODO QUE ELLA NO PUEDE IGNORAR
@@ -257,6 +318,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           color: '#999999',
           textAlign: 'center',
           marginBottom: 'clamp(1.5rem, 4vw, 2rem)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         Capítulo 1 — Solo para acceso temprano
@@ -271,6 +334,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           width: '80%',
           maxWidth: '360px',
           marginBottom: '0.4rem',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <div
@@ -333,6 +398,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           marginTop: 'clamp(0.75rem, 2vw, 1.25rem)',
           width: '100%',
           maxWidth: '360px',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         {/* Shuffle — decorative */}
@@ -448,6 +515,8 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
         }
         style={{
           marginTop: 'clamp(1.25rem, 3vw, 1.75rem)',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <button

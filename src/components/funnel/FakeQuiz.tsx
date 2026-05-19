@@ -56,8 +56,6 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     const video = videoRef.current
     if (!video) return
 
-    video.load()
-
     const tryPlay = async () => {
       try {
         video.muted = false
@@ -78,26 +76,17 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
       setVideoEnded(true)
     }
 
-    const handlePause = () => {
-      if (!video.ended) {
-        setTimeout(() => {
-          if (!video.ended) video.play().catch(() => {})
-        }, 100)
-      }
-    }
-
+    // Gentle keep-alive: only retry if stalled, not every 500ms
     const keepAlive = setInterval(() => {
-      if (video.paused && !video.ended) {
+      if (video.paused && !video.ended && video.readyState >= 2) {
         video.play().catch(() => {})
       }
-    }, 500)
+    }, 3000)
 
     video.addEventListener('ended', handleEnded)
-    video.addEventListener('pause', handlePause)
 
     return () => {
       video.removeEventListener('ended', handleEnded)
-      video.removeEventListener('pause', handlePause)
       clearInterval(keepAlive)
       video.pause()
     }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 interface ClownVideoScreenProps {
   onComplete: () => void
@@ -13,7 +12,6 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   const [showButton, setShowButton] = useState(true)
-  const [buttonFading, setButtonFading] = useState(false)
 
   useEffect(() => {
     onCompleteRef.current = onComplete
@@ -32,7 +30,7 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
       soundActivatedRef.current = true
     }
 
-    setButtonFading(true)
+    setShowButton(false)
 
     const video = videoRef.current
     if (!video) return
@@ -57,10 +55,6 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
         tryUnmute()
       })
     }
-
-    setTimeout(() => {
-      setShowButton(false)
-    }, 300)
   }, [])
 
   useEffect(() => {
@@ -102,8 +96,11 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
         inset: 0,
         backgroundColor: '#000',
         overflow: 'hidden',
+        display: 'grid',
+        placeItems: 'center',
       }}
     >
+      {/* Video — absolutely positioned, doesn't participate in grid */}
       <video
         ref={videoRef}
         src="/videos/payaso-vol1.mp4"
@@ -119,63 +116,51 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
         preload="auto"
       />
 
-      <AnimatePresence>
-        {showButton && (
-          <motion.button
-            onClick={activateSound}
-            initial={{ opacity: 1 }}
-            animate={
-              buttonFading
-                ? { opacity: 0 }
-                : {
-                    opacity: [1, 0.7, 1],
-                    scale: [1, 1.04, 1],
-                    boxShadow: [
-                      '0 0 30px rgba(204,0,0,0.5)',
-                      '0 0 50px rgba(204,0,0,0.8)',
-                      '0 0 30px rgba(204,0,0,0.5)',
-                    ],
-                  }
-            }
-            transition={
-              buttonFading
-                ? { duration: 0.3, ease: 'easeOut' }
-                : {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }
-            }
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 10,
-              background: 'rgba(0,0,0,0.75)',
-              border: '3px solid #CC0000',
-              borderRadius: '16px',
-              padding: '28px 48px',
-              color: 'white',
-              fontFamily: "'Cinzel', serif",
-              fontSize: 'clamp(1rem, 4vw, 1.25rem)',
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              boxShadow: '0 0 40px rgba(204,0,0,0.6)',
-              cursor: 'pointer',
-              minWidth: '44px',
-              minHeight: '44px',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              userSelect: 'none',
-              textAlign: 'center',
-            }}
-          >
-            🔊 TOCA PARA ACTIVAR SONIDO
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Button — grid-centered, NO transform, NO absolute positioning */}
+      {showButton && (
+        <button
+          onClick={activateSound}
+          className="sound-activate-btn"
+          style={{
+            zIndex: 10,
+            background: 'rgba(0,0,0,0.75)',
+            border: '3px solid #CC0000',
+            borderRadius: '16px',
+            padding: '28px 48px',
+            color: 'white',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(1rem, 4vw, 1.25rem)',
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            boxShadow: '0 0 40px rgba(204,0,0,0.6)',
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+            userSelect: 'none',
+            textAlign: 'center',
+            position: 'relative',
+          }}
+        >
+          🔊 TOCA PARA ACTIVAR SONIDO
+        </button>
+      )}
+
+      {/* CSS keyframes — pulse opacity + box-shadow only, NEVER transform */}
+      <style>{`
+        .sound-activate-btn {
+          animation: soundBtnPulse 2s ease-in-out infinite;
+        }
+        @keyframes soundBtnPulse {
+          0%, 100% {
+            opacity: 1;
+            box-shadow: 0 0 30px rgba(204,0,0,0.5);
+          }
+          50% {
+            opacity: 0.85;
+            box-shadow: 0 0 55px rgba(204,0,0,0.85);
+          }
+        }
+      `}</style>
     </div>
   )
 }
