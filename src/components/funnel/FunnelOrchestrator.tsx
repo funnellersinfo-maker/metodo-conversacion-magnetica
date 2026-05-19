@@ -12,8 +12,9 @@ import ClownVideoScreen from './ClownVideoScreen'
 import WhatsAppNotification from './WhatsAppNotification'
 import WhatsAppChatScreen from './WhatsAppChatScreen'
 import TikTokLoginScreen from './TikTokLoginScreen'
+import TikTokFeedScreen from './TikTokFeedScreen'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video' | 'whatsapp_notification' | 'whatsapp_chat' | 'tiktok_login'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video' | 'whatsapp_notification' | 'whatsapp_chat' | 'tiktok_login' | 'tiktok_feed'
 
 const stepOrder: FunnelStep[] = [
   'landing',
@@ -26,6 +27,7 @@ const stepOrder: FunnelStep[] = [
   'whatsapp_notification',
   'whatsapp_chat',
   'tiktok_login',
+  'tiktok_feed',
 ]
 
 export function FunnelOrchestrator() {
@@ -61,6 +63,8 @@ export function FunnelOrchestrator() {
         return <WhatsAppChatScreen onComplete={goToNextStep} />
       case 'tiktok_login':
         return <TikTokLoginScreen onComplete={goToNextStep} />
+      case 'tiktok_feed':
+        return <TikTokFeedScreen onComplete={goToNextStep} />
       default:
         return null
     }
@@ -69,7 +73,7 @@ export function FunnelOrchestrator() {
   return (
     <>
       {/* BRAND WATERMARK — hidden on whatsapp_notification, whatsapp_chat (integrated in header), and tiktok_login */}
-      {!['whatsapp_notification', 'whatsapp_chat', 'tiktok_login'].includes(currentStep) && (
+      {!['whatsapp_notification', 'whatsapp_chat', 'tiktok_login', 'tiktok_feed'].includes(currentStep) && (
         <div
           className="fixed top-5 left-5 z-[999] flex items-center gap-2 pointer-events-none select-none"
           style={{ opacity: 0.85 }}

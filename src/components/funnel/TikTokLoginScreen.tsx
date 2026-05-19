@@ -16,6 +16,12 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
     onCompleteRef.current = onComplete
   }, [onComplete])
 
+  const handleLogin = () => {
+    if (completedRef.current) return
+    completedRef.current = true
+    onCompleteRef.current()
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -30,17 +36,52 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
         alignItems: 'center',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         overflow: 'hidden',
+        userSelect: 'none',
       }}
     >
-      {/* ── TikTok Logo ── */}
-      <div style={{ marginTop: 'clamp(60px, 15vh, 100px)', marginBottom: 40 }}>
-        <svg width="118" height="42" viewBox="0 0 118 42" fill="none">
-          {/* TikTok logo simplified */}
-          <path d="M40.5 0h8.5c0 8 0 16 .1 24 .2 3.5-.5 7.2-2.9 10-2.9 3.3-7.4 4.8-11.6 4.2-4.5-.5-8.5-3.5-10.2-7.6-1.5-3.6-1-8 1.2-11.2 2.3-3.3 6.2-5.3 10.2-5.1 2.4.1 4.6 1 6.4 2.5V0h-1.7z" fill="#25F4EE"/>
-          <path d="M40.5 12.8c-3.2-2.3-7.7-2-10.5.7-3.1 2.8-3.5 7.8-1 11.1 2.2 3 6.3 4.2 9.7 2.8 2.8-1.1 4.9-3.8 5.3-6.8.2-2.5.1-5.1.1-7.6-.9-.8-2.3-1.4-3.6-.2z" fill="#FE2C55"/>
-          <path d="M41.7 12.8v16.7c0 3.4-2 6.6-5 8.2-3.5 1.9-8 1.4-11-1.2 2.7.6 5.7-.1 7.7-2 1.8-1.7 2.7-4.1 2.7-6.6V12.8c1-1 2.3-1.5 3.6-1.5 1.4 0 2.7.5 3.7 1.5h-1.7z" fill="white"/>
-          {/* Text "TikTok" */}
-          <text x="56" y="30" fill="white" fontSize="20" fontWeight="800" fontFamily="sans-serif">TikTok</text>
+      {/* ── Android status bar ── */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '8px 14px 4px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '0.68rem',
+        fontWeight: 600,
+        zIndex: 10,
+      }}>
+        <span>{new Date().getHours().toString().padStart(2, '0')}:{new Date().getMinutes().toString().padStart(2, '0')}</span>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <svg width="12" height="10" viewBox="0 0 16 12" fill="currentColor" opacity="0.6">
+            <rect x="0" y="8" width="3" height="4" rx="0.5" />
+            <rect x="4" y="5" width="3" height="7" rx="0.5" />
+            <rect x="8" y="2" width="3" height="10" rx="0.5" />
+            <rect x="12" y="0" width="3" height="12" rx="0.5" />
+          </svg>
+          <svg width="12" height="10" viewBox="0 0 24 24" fill="currentColor" opacity="0.6">
+            <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z" />
+          </svg>
+          <svg width="18" height="10" viewBox="0 0 22 12" fill="none">
+            <rect x="0.5" y="0.5" width="16" height="11" rx="2" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+            <rect x="2" y="2" width="11" height="8" rx="1" fill="rgba(255,255,255,0.6)" />
+            <rect x="17" y="3" width="2" height="6" rx="0.5" fill="rgba(255,255,255,0.4)" />
+          </svg>
+        </div>
+      </div>
+
+      {/* ── TikTok Logo — REAL SVG ── */}
+      <div style={{ marginTop: 'clamp(70px, 18vh, 110px)', marginBottom: 36 }}>
+        <svg width="118" height="34" viewBox="0 0 118 34" fill="none">
+          {/* TikTok music note icon */}
+          <path d="M29.5 0H33v22c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8c1.5 0 2.9.4 4.1 1.1V9.2c-1.3-.5-2.7-.7-4.1-.7-6.1 0-11 4.9-11 11s4.9 11 11 11 11-4.9 11-11V0h-3.5v4.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V0z" fill="#25F4EE"/>
+          <path d="M33 0v4.5c0 1.4 1.1 2.5 2.5 2.5S38 5.9 38 4.5V0h-5z" fill="#FE2C55"/>
+          <path d="M33 0v22c0 4.4-3.6 8-8 8-1.5 0-2.9-.4-4.1-1.1 1.2.7 2.6 1.1 4.1 1.1 4.4 0 8-3.6 8-8V0z" fill="white"/>
+          {/* "TikTok" text */}
+          <text x="46" y="26" fill="white" fontSize="22" fontWeight="800" fontFamily="proxima-nova, sans-serif" letterSpacing="-0.5">TikTok</text>
         </svg>
       </div>
 
@@ -50,42 +91,64 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
         maxWidth: '360px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 12,
       }}>
-        {/* Username field — pre-filled */}
+        {/* Title */}
+        <div style={{
+          color: '#ffffff',
+          fontSize: '1.15rem',
+          fontWeight: 700,
+          textAlign: 'center',
+          marginBottom: 4,
+        }}>
+          Iniciar sesión en TikTok
+        </div>
+
+        <div style={{
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: '0.78rem',
+          textAlign: 'center',
+          marginBottom: 8,
+          lineHeight: 1.4,
+        }}>
+          Gestiona tu cuenta, revisa notificaciones, comenta en videos y más.
+        </div>
+
+        {/* Username field — pre-filled, NOT editable */}
         <div style={{
           background: '#1c1c1c',
           borderRadius: 4,
-          padding: '14px 16px',
+          padding: '13px 14px',
           border: '1px solid #3a3a3a',
+          pointerEvents: 'none',
         }}>
-          <div style={{ color: '#6a6a6a', fontSize: '0.7rem', marginBottom: 4 }}>
-            Usuario
+          <div style={{ color: '#6a6a6a', fontSize: '0.68rem', marginBottom: 3, fontWeight: 500 }}>
+            Teléfono / Usuario / Correo
           </div>
-          <div style={{ color: '#ffffff', fontSize: '0.9rem', fontWeight: 500 }}>
+          <div style={{ color: '#ffffff', fontSize: '0.88rem', fontWeight: 500 }}>
             @ELCODIGODETEXTO
           </div>
         </div>
 
-        {/* Password field — pre-filled with toggle */}
+        {/* Password field — pre-filled, NOT editable, eye toggle works */}
         <div style={{
           background: '#1c1c1c',
           borderRadius: 4,
-          padding: '14px 16px',
+          padding: '13px 14px',
           border: '1px solid #3a3a3a',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 8,
         }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: '#6a6a6a', fontSize: '0.7rem', marginBottom: 4 }}>
+          <div style={{ flex: 1, pointerEvents: 'none' }}>
+            <div style={{ color: '#6a6a6a', fontSize: '0.68rem', marginBottom: 3, fontWeight: 500 }}>
               Contraseña
             </div>
-            <div style={{ color: '#ffffff', fontSize: '0.9rem', fontWeight: 500 }}>
+            <div style={{ color: '#ffffff', fontSize: '0.88rem', fontWeight: 500 }}>
               {showPassword ? 'DANTE000' : '••••••••'}
             </div>
           </div>
-          {/* Eye toggle */}
+          {/* Eye toggle — ALWAYS clickable */}
           <button
             type="button"
             onClick={() => setShowPassword(prev => !prev)}
@@ -93,18 +156,19 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: 4,
+              padding: 6,
               display: 'flex',
               alignItems: 'center',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             {showPassword ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a6a6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6a6a6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
             ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a6a6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6a6a6a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
@@ -112,21 +176,23 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
           </button>
         </div>
 
-        {/* Login button */}
+        {/* Login button — goes to feed */}
         <button
           type="button"
+          onClick={handleLogin}
           style={{
             width: '100%',
-            padding: '14px',
+            padding: '13px',
             background: '#FE2C55',
             border: 'none',
             borderRadius: 4,
             color: '#ffffff',
-            fontSize: '0.95rem',
+            fontSize: '0.92rem',
             fontWeight: 700,
             cursor: 'pointer',
-            marginTop: 8,
-            letterSpacing: '0.02em',
+            marginTop: 6,
+            letterSpacing: '0.01em',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           Iniciar sesión
@@ -137,12 +203,12 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
           display: 'flex',
           justifyContent: 'center',
           gap: 16,
-          marginTop: 12,
+          marginTop: 10,
         }}>
-          <span style={{ color: '#6a6a6a', fontSize: '0.75rem' }}>
+          <span style={{ color: '#6a6a6a', fontSize: '0.74rem', cursor: 'pointer' }}>
             ¿Olvidaste la contraseña?
           </span>
-          <span style={{ color: '#6a6a6a', fontSize: '0.75rem' }}>
+          <span style={{ color: '#6a6a6a', fontSize: '0.74rem', cursor: 'pointer' }}>
             Registrarse
           </span>
         </div>
@@ -151,13 +217,13 @@ export default function TikTokLoginScreen({ onComplete }: TikTokLoginScreenProps
       {/* ── Bottom policy text ── */}
       <div style={{
         position: 'absolute',
-        bottom: 'clamp(30px, 6vh, 60px)',
+        bottom: 'clamp(28px, 5vh, 50px)',
         left: 0,
         right: 0,
         textAlign: 'center',
         padding: '0 20px',
       }}>
-        <p style={{ color: '#4a4a4a', fontSize: '0.65rem', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ color: '#4a4a4a', fontSize: '0.62rem', lineHeight: 1.5, margin: 0 }}>
           Al continuar, aceptas los Términos de Servicio y la Política de Privacidad de TikTok.
         </p>
       </div>

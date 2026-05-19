@@ -43,9 +43,41 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     onCompleteRef.current = onComplete
   }, [onComplete])
 
+  // ═══ REVERB EFFECT — set to false to disable easily ═══
+  const REVERB_ENABLED = true
+  const REVERB_MIX = 0.02 // 2% wet — extremely subtle
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const reverbNodeRef = useRef<ConvolverNode | null>(null)
+
+  // Initialize Web Audio reverb once
+  useEffect(() => {
+    if (!REVERB_ENABLED) return
+    try {
+      const ctx = new AudioContext()
+      audioCtxRef.current = ctx
+
+      // Generate impulse response for a large empty room (subtle reverb)
+      const sampleRate = ctx.sampleRate
+      const length = sampleRate * 1.8 // 1.8 second decay
+      const impulse = ctx.createBuffer(2, length, sampleRate)
+      for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch)
+        for (let i = 0; i < length; i++) {
+          // Exponential decay with some randomness — sounds like an empty room
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.5)
+        }
+      }
+      const convolver = ctx.createConvolver()
+      convolver.buffer = impulse
+      reverbNodeRef.current = convolver
+    } catch {
+      // Web Audio not available — proceed without reverb
+    }
+  }, [])
+
   // Preload incoming message sound
   useEffect(() => {
-    incomingSoundRef.current = new Audio('/audio/wha-incoming.mp3')
+    incomingSoundRef.current = new Audio('/audio/wha-incoming.aac')
     incomingSoundRef.current.volume = 0.7
     incomingSoundRef.current.preload = 'auto'
   }, [])
@@ -115,6 +147,22 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
       const audio = new Audio(msg.src)
       audioRef.current = audio
 
+      // Apply reverb effect if enabled
+      if (REVERB_ENABLED && audioCtxRef.current && reverbNodeRef.current) {
+        try {
+          const ctx = audioCtxRef.current
+          const source = ctx.createMediaElementSource(audio)
+          const dryGain = ctx.createGain()
+          const wetGain = ctx.createGain()
+          dryGain.gain.value = 1 - REVERB_MIX
+          wetGain.gain.value = REVERB_MIX
+          source.connect(dryGain).connect(ctx.destination)
+          source.connect(reverbNodeRef.current).connect(wetGain).connect(ctx.destination)
+        } catch {
+          // If already connected, just play without reverb
+        }
+      }
+
       // Mark as playing
       const next = [...prev]
       next[index] = { ...next[index], playing: true }
@@ -126,6 +174,11 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
       if (!audioRef.current) return
       const audio = audioRef.current
       const currentIndex = index
+
+      // Resume AudioContext if suspended (browser autoplay policy)
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
+      }
 
       audio.addEventListener('timeupdate', () => {
         if (audio.duration > 0) {
