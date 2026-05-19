@@ -1,0 +1,46 @@
+#!/bin/bash
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  PRE-COMMIT HOOK — ARCHIVOS PROTEGIDOS DEL FUNNEL              ║
+# ║  BLOQUEA cualquier commit que modifique los archivos lockeados  ║
+# ║  Tags: v1.0-llamada-locked, v2.0-quiz-locked                   ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+LOCKED_FILES=(
+  "src/components/funnel/AudioCallScreen.tsx"
+  "src/components/funnel/FakeQuiz.tsx"
+  "src/components/funnel/FunnelOrchestrator.tsx"
+  "src/components/funnel/PreCallVideo.tsx"
+  "src/components/funnel/CinematicLanding.tsx"
+  "src/components/funnel/CallHook.tsx"
+  "public/videos/dante-llamando.mp4"
+  "public/videos/vidrio-roto.mp4"
+  "public/audio/fondo-llamada.aac"
+  "public/audio/call-audio.m4a"
+  "public/audio/call-audio.mp3"
+)
+
+BLOCKED=false
+
+for file in "${LOCKED_FILES[@]}"; do
+  # Check if this file is staged for commit (modified or deleted)
+  if git diff --cached --name-only | grep -q "^${file}$"; then
+    echo ""
+    echo "🔒 ══════════════════════════════════════════════════════════"
+    echo "🔒  ARCHIVO BLOQUEADO — COMMIT RECHAZADO"
+    echo "🔒  Archivo: $file"
+    echo "🔒  Este archivo está protegido por .ai-protection"
+    echo "🔒  Para modificarlo necesitas autorización explícita del usuario"
+    echo "🔒 ══════════════════════════════════════════════════════════"
+    echo ""
+    BLOCKED=true
+  fi
+done
+
+if [ "$BLOCKED" = true ]; then
+  echo "❌ COMMIT BLOQUEADO — Se intentaron modificar archivos protegidos."
+  echo "   Para restaurar: git checkout v2.0-quiz-locked -- <archivo>"
+  echo "   Para forzar (solo si el usuario autorizó): git commit --no-verify"
+  exit 1
+fi
+
+exit 0
