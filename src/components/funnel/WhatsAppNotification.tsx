@@ -239,13 +239,12 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
             border: '1.5px solid rgba(255,255,255,0.1)',
           }}>
             <img
-              src="/images/notification/zyra-profile.jpg"
+              src="/images/notification/zyra-profile.png"
               alt="Zyra"
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                filter: 'grayscale(100%) contrast(1.1)',
               }}
             />
           </div>
