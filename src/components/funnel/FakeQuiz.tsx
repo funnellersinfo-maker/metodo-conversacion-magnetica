@@ -8,14 +8,21 @@ interface FakeQuizProps {
 }
 
 // ============ PREGUNTA ESTRATÉGICA FOMO ============
-// Una sola pregunta que genera urgencia, escasez y competencia
 const QUIZ = {
-  question: '¿Cuántos hombres están viendo esto mismo ahora... y están a punto de adelantarse?',
+  question: 'Sé honesto... ¿En cuál de estos tres cementerios digitales está muriendo tu chat en este momento?',
   options: [
-    { label: 'A', text: 'Nadie más tiene acceso' },
-    { label: 'B', text: 'Quizás algunos cientos' },
-    { label: 'C', text: 'Miles en este momento' },
-    { label: 'D', text: 'Prefiero no saberlo' },
+    {
+      label: 'A',
+      text: 'El chat iba increíble, pero de la nada se enfrió, me dejó en visto y ahora no sé qué escribir sin parecer desesperado.',
+    },
+    {
+      label: 'B',
+      text: 'Me responde, pero solo por cortesía. Si yo no invento un tema o hago una pregunta, el chat se muere ahí mismo.',
+    },
+    {
+      label: 'C',
+      text: 'Ni siquiera abre mi mensaje. Sé que mi notificación lleva días sepultada abajo de otros 50 tipos que le escriben lo mismo.',
+    },
   ],
 }
 
@@ -37,10 +44,10 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
     setAnswered(true)
     setSelectedIdx(idx)
 
-    // After brief moment, show video behind
+    // Instant → show video behind translucent quiz
     setTimeout(() => {
       setShowVideo(true)
-    }, 400)
+    }, 300)
   }, [answered])
 
   // Play video when showVideo becomes true
@@ -110,14 +117,14 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* ============ VIDEO LAYER (bottom) ============ */}
+      {/* ============ VIDEO LAYER (bottom) — plays behind translucent quiz ============ */}
       <AnimatePresence>
         {showVideo && (
           <motion.div
             className="absolute inset-0 z-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4 }}
           >
             <video
               ref={videoRef}
@@ -130,102 +137,84 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         )}
       </AnimatePresence>
 
-      {/* ============ WHITE WASH OVERLAY (middle) — ACLARA 50% ============ */}
-      {/* This is the key: instead of opacity:0.5 on the quiz (which makes it DISAPPEAR),
-          we overlay a white layer at 50% opacity, creating a lightened/frosted effect
-          while the video plays behind it */}
-      <AnimatePresence>
-        {showVideo && (
-          <motion.div
-            className="absolute inset-0 z-10"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.50)' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ============ QUIZ CONTENT (top layer) ============ */}
+      {/* ============ QUIZ CONTENT (top layer — becomes TRANSLUCENT 50%) ============ */}
+      {/* When answered, the whole quiz fades to 50% opacity — video shows through */}
       <motion.div
-        className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6"
-        animate={answered ? { opacity: 0.35 } : { opacity: 1 }}
+        className="absolute inset-0 z-20 flex flex-col items-center justify-center px-5"
+        style={{ background: showVideo ? 'transparent' : '#000000' }}
+        animate={{ opacity: answered ? 0.5 : 1 }}
         transition={{ duration: 0.5 }}
       >
         {/* ── Shield Icon ── */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 12,
+            width: 52,
+            height: 52,
+            borderRadius: 10,
             border: '2px solid #CC0000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: 20,
+            marginBottom: 16,
           }}
         >
-          {/* Shield SVG */}
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <path d="M9 12l2 2 4-4" strokeWidth="2" />
           </svg>
         </motion.div>
 
-        {/* ── "VERIFICACIÓN DE ACCESO" with horizontal lines ── */}
+        {/* ── "1/5 PREGUNTAS" counter — engaña al ojo ── */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.4 }}
+          transition={{ delay: 0.25, duration: 0.35 }}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            marginBottom: 28,
-            width: '100%',
-            maxWidth: 340,
+            gap: 10,
+            marginBottom: 20,
           }}
         >
-          <div style={{ flex: 1, height: 1, backgroundColor: '#333333' }} />
+          <div style={{ height: 1, width: 28, backgroundColor: '#333' }} />
           <span style={{
-            fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-            fontSize: 'clamp(0.55rem, 1.8vw, 0.7rem)',
-            fontWeight: 600,
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(0.5rem, 1.6vw, 0.65rem)',
+            fontWeight: 500,
             color: '#CC0000',
             letterSpacing: '0.22em',
             textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
           }}>
-            VERIFICACIÓN DE ACCESO
+            1 / 5 PREGUNTAS
           </span>
-          <div style={{ flex: 1, height: 1, backgroundColor: '#333333' }} />
+          <div style={{ height: 1, width: 28, backgroundColor: '#333' }} />
         </motion.div>
 
-        {/* ── Question ── */}
+        {/* ── Question — 2 lines on mobile ── */}
         <motion.h2
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          transition={{ delay: 0.4, duration: 0.45 }}
           style={{
-            fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-            fontSize: 'clamp(1rem, 4.2vw, 1.25rem)',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(0.82rem, 3.4vw, 1.05rem)',
             fontWeight: 700,
             color: '#FFFFFF',
             textAlign: 'center',
-            lineHeight: 1.55,
-            maxWidth: '360px',
-            marginBottom: 32,
-            textShadow: '0 2px 20px rgba(0,0,0,0.6)',
+            lineHeight: 1.6,
+            maxWidth: '340px',
+            marginBottom: 24,
+            textShadow: '0 2px 18px rgba(0,0,0,0.7)',
           }}
         >
           {QUIZ.question}
         </motion.h2>
 
         {/* ── Options ── */}
-        <div className="w-full max-w-sm flex flex-col gap-3">
+        <div className="w-full max-w-sm flex flex-col gap-2.5">
           {QUIZ.options.map((opt, i) => {
             const isSelected = selectedIdx === i
 
@@ -236,39 +225,42 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
                 disabled={answered}
                 className="w-full cursor-pointer text-left relative overflow-hidden"
                 style={{
-                  fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-                  fontSize: 'clamp(0.78rem, 2.8vw, 0.88rem)',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 'clamp(0.65rem, 2.2vw, 0.76rem)',
                   fontWeight: isSelected ? 600 : 400,
                   color: isSelected ? '#FFFFFF' : '#CCCCCC',
                   background: isSelected
-                    ? 'rgba(204, 0, 0, 0.18)'
+                    ? 'rgba(204, 0, 0, 0.15)'
                     : '#1A1A1A',
-                  borderRadius: 6,
-                  padding: '15px 18px',
+                  borderRadius: 5,
+                  padding: '13px 15px 13px 38px',
                   border: isSelected
                     ? '1px solid #CC0000'
-                    : '1px solid #333333',
+                    : '1px solid #2A2A2A',
                   transition: 'all 0.25s ease',
                   pointerEvents: answered ? 'none' : 'auto',
+                  lineHeight: 1.5,
                 }}
                 whileTap={!answered ? { scale: 0.98 } : {}}
                 whileHover={!answered ? { borderColor: '#CC0000' } : {}}
               >
-                {/* Red letter label */}
+                {/* Red letter label — absolute left */}
                 <span style={{
+                  position: 'absolute',
+                  left: 14,
+                  top: 13,
                   color: '#CC0000',
                   fontWeight: 700,
-                  marginRight: 12,
-                  fontSize: 'clamp(0.75rem, 2.5vw, 0.85rem)',
+                  fontSize: 'clamp(0.65rem, 2.2vw, 0.76rem)',
                 }}>
                   {opt.label}.
                 </span>
                 {opt.text}
 
-                {/* Selected indicator */}
+                {/* Selected red bar */}
                 {isSelected && (
                   <motion.div
-                    layoutId="selected-indicator"
+                    layoutId="selected-bar"
                     style={{
                       position: 'absolute',
                       top: 0,
@@ -291,16 +283,16 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         {/* ── Brand watermark ── */}
         <motion.span
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.35 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ delay: 0.7, duration: 0.4 }}
           style={{
-            fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-            fontSize: 'clamp(0.5rem, 1.4vw, 0.6rem)',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(0.45rem, 1.2vw, 0.55rem)',
             fontWeight: 500,
-            color: '#666666',
+            color: '#555555',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            marginTop: 32,
+            marginTop: 28,
           }}
         >
           MÉTODO MAGNÉTICO
@@ -312,23 +304,23 @@ export default function FakeQuiz({ onComplete }: FakeQuizProps) {
         {videoEnded && (
           <motion.div
             className="absolute bottom-14 left-0 right-0 flex justify-center z-40"
-            initial={{ opacity: 0, y: 25 }}
+            initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
           >
             <button
               onClick={handleContinue}
               className="cursor-pointer border-none"
               style={{
-                fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-                fontSize: 'clamp(0.8rem, 3vw, 0.95rem)',
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.78rem, 2.8vw, 0.92rem)',
                 fontWeight: 700,
                 color: '#FFFFFF',
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 background: '#CC0000',
                 borderRadius: 4,
-                padding: '15px 52px',
+                padding: '14px 48px',
                 boxShadow: '0 0 35px rgba(204, 0, 0, 0.6), 0 4px 20px rgba(0,0,0,0.5)',
                 animation: 'quizPulse 2s ease-in-out infinite',
               }}
