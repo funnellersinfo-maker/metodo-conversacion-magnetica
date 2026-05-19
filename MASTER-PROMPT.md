@@ -1,8 +1,8 @@
 # ══════════════════════════════════════════════════════════════════════════
-# MASTER PROMPT — CONSTRUCTOR DE EMBUDOS INTERACTIVOS CINEMÁTICOS
+# MASTER PROMPT — CONSTRUCTOR DE EMBUDOS INTERACTIVOS CON BLOQUEO PROGRESIVO
 # ══════════════════════════════════════════════════════════════════════════
-# Versión: 1.0
-# Uso: Copiar y pegar completo en un chat nuevo. No omitir ninguna sección.
+# Versión: 2.0
+# Uso: Copiar y pegar COMPLETO en un chat nuevo. No omitir ninguna línea.
 # ══════════════════════════════════════════════════════════════════════════
 
 ---
@@ -10,12 +10,12 @@
 ## CREDENCIALES
 
 ```
-GIT_API_KEY:      [PEGAR AQUÍ]
-GIT_USER_EMAIL:   [PEGAR AQUÍ]
-GIT_USER_NAME:    [PEGAR AQUÍ]
-CLOUDFLARE_TOKEN: [PEGAR AQUÍ]
-CLOUDFLARE_PROJECT_NAME: [PEGAR AQUÍ]
-DOMINIO:          [PEGAR AQUÍ]
+GIT_API_KEY:               [PEGAR AQUÍ]
+GIT_USER_EMAIL:            [PEGAR AQUÍ]
+GIT_USER_NAME:             [PEGAR AQUÍ]
+CLOUDFLARE_TOKEN:          [PEGAR AQUÍ]
+CLOUDFLARE_PROJECT_NAME:   [PEGAR AQUÍ]
+DOMINIO:                   [PEGAR AQUÍ]
 ```
 
 ---
@@ -31,10 +31,147 @@ COLOR PRIMARIO:   [EJ: #CC0000 rojo, #D4AF37 dorado, #00FF00 neón, etc.]
 COLOR SECUNDARIO: [EJ: #FFFFFF blanco, #CCCCCC gris claro, etc.]
 FUENTE PRINCIPAL: [EJ: Cinzel, Playfair Display, Oswald, etc.]
 AUDIO LLAMADA:    [Nombre del archivo de audio de la llamada - SUBIR]
-VIDEO PRE-LLAMADA: [Nombre del archivo de video antes de la llamada - SUBIR]
+VIDEO PRE-LLAMADA:[Nombre del archivo de video antes de la llamada - SUBIR]
 VIDEO QUIZ:       [Nombre del archivo de video al responder quiz - SUBIR]
 AUDIO FONDO:      [Nombre del archivo de audio de fondo - SUBIR]
 ```
+
+---
+
+## ⚠️⚠️⚠️ REGLA #1 — SISTEMA DE BLOQUEO PROGRESIVO ⚠️⚠️⚠️
+
+ESTO ES LO MÁS IMPORTANTE DE TODO EL PROMPT. SI NO SIGUES ESTO, EL PROYECTO SE ROMPE.
+
+### Principio fundamental:
+Cada componente que el usuario APRUEBE se BLOQUEA PERMANENTEMENTE. Jamás se vuelve a tocar.
+Lo que se construya después va en archivos NUEVOS sin modificar los ya bloqueados.
+
+### El ciclo OBLIGATORIO para CADA componente:
+
+```
+CONSTRUIR → MOSTRAR → USUARIO APRUEBA → BLOQUEAR INMEDIATAMENTE → AVANZAR
+```
+
+### Cuando el usuario dice "aprobado", "bloquealo", "queda perfecto", "no se toca más":
+Debes ejecutar ESTO inmediatamente, sin preguntar, sin omitir ningún paso:
+
+#### PASO 1: Crear archivo `.ai-protection` (o actualizar el existente)
+```ini
+# ARCHIVO DE PROTECCION — NO MODIFICAR SIN AUTORIZACION
+# Creado: [FECHA DE HOY]
+# Git Tag: [TAG QUE SE VA A CREAR]
+
+[src/components/funnel/NombreComponente.tsx]
+razon = [Descripción de por qué está bloqueado y qué hace]
+bloqueado = true
+tag = [TAG]
+
+[public/videos/o-audios-relacionados]
+razon = Asset optimizado — NO reemplazar
+bloqueado = true
+tag = [TAG]
+
+# Comando de restauración:
+# git checkout [TAG] -- src/components/funnel/
+```
+
+#### PASO 2: Crear Git Tag
+```bash
+git tag -a "v[N]_[nombre]-locked" -m "🔒 [COMPONENTE] BLOQUEADO — [descripción]. NO MODIFICAR sin autorización del usuario."
+```
+- Los tags son INMUTABLES — una vez creados, el código en ese punto queda congelado para siempre
+- Cada componente aprobado recibe su propio tag
+- Los tags se numeran incrementalmente: v1.0, v2.0, v3.0...
+
+#### PASO 3: Crear/actualizar Pre-commit Hook
+Archivo: `.githooks/pre-commit` (debe ser ejecutable con `chmod +x`)
+
+```bash
+#!/bin/bash
+# PRE-COMMIT HOOK — BLOQUEA modificaciones a archivos protegidos
+
+LOCKED_FILES=(
+  "src/components/funnel/ComponenteA.tsx"
+  "src/components/funnel/ComponenteB.tsx"
+  # Agregar CADA nuevo componente bloqueado aquí
+  # También agregar videos, audios e imágenes protegidas
+)
+
+BLOCKED=false
+for file in "${LOCKED_FILES[@]}"; do
+  if git diff --cached --name-only | grep -q "^${file}$"; then
+    echo ""
+    echo "🔒 ════════════════════════════════════════════════════════"
+    echo "🔒  ARCHIVO BLOQUEADO — COMMIT RECHAZADO"
+    echo "🔒  Archivo: $file"
+    echo "🔒  Este archivo está protegido por .ai-protection"
+    echo "🔒  Para modificarlo necesitas autorización explícita del usuario"
+    echo "🔒 ════════════════════════════════════════════════════════"
+    echo ""
+    BLOCKED=true
+  fi
+done
+
+if [ "$BLOCKED" = true ]; then
+  echo "❌ COMMIT BLOQUEADO — Se intentaron modificar archivos protegidos."
+  echo "   Para restaurar: git checkout [ÚLTIMO TAG] -- <archivo>"
+  echo "   Para forzar (SOLO si el usuario autorizó): git commit --no-verify"
+  exit 1
+fi
+exit 0
+```
+
+#### PASO 4: Activar el hook
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
+```
+
+#### PASO 5: Verificar que los hashes coinciden
+```bash
+for f in ComponenteA.tsx ComponenteB.tsx; do
+  TAG=$(git ls-tree [TAG] -- src/components/funnel/$f | awk '{print $3}')
+  NOW=$(git hash-object src/components/funnel/$f)
+  [ "$TAG" = "$NOW" ] && echo "✅ $f" || echo "⚠️ $f DIFERENTE!"
+done
+```
+- Si ALGÚN hash no coincide → ALGO ESTÁ MAL, no continuar hasta resolver
+
+#### PASO 6: Commit de la protección
+```bash
+git add .ai-protection .githooks/
+git commit --no-verify -m "Lock [componente] — protected with tag + hook"
+```
+- Usar `--no-verify` para este commit específico porque el hook actualizaría los archivos del hook mismo
+
+### Resultado: 3 capas de protección
+
+| Capa | Qué hace | Efecto |
+|------|----------|--------|
+| Git Tag | Snapshot inmutable del código | Se puede restaurar a la versión exacta |
+| .ai-protection | Contrato que cualquier IA debe leer | La IA sabe qué NO tocar |
+| Pre-commit Hook | BLOQUEA commits que modifiquen archivos protegidos | Imposible hacer commit por accidente |
+
+### Para el usuario — comandos de emergencia:
+```bash
+# Restaurar TODO el funnel a su último estado bloqueado:
+git checkout [ÚLTIMO TAG] -- src/components/funnel/
+
+# Restaurar un archivo específico:
+git checkout [TAG DEL COMPONENTE] -- src/components/funnel/Archivo.tsx
+
+# Forzar un cambio (SOLO cuando el usuario lo autorice explícitamente):
+git commit --no-verify -m "cambio autorizado por el usuario"
+```
+
+### ¿Quién puede modificar archivos bloqueados?
+
+| Persona | ¿Puede? | ¿Cómo? |
+|---------|---------|--------|
+| El usuario (dueño) | ✅ SÍ | Dice "desbloquea X" y el agente lo hace con --no-verify |
+| El agente de IA | ❌ NO | A menos que el usuario lo autorice explícitamente |
+| Otro agente/IA | ❌ NO | El hook bloquea el commit automáticamente |
+| Alguien con acceso al repo | ⚠️ Parcial | Necesita --no-verify para forzar |
 
 ---
 
@@ -54,13 +191,14 @@ Eres un desarrollador experto en Next.js 16 construyendo un embudo interactivo c
 1. **MOBILE-FIRST** — Todo se diseña para móvil primero. Nada de desktop-first.
 2. **Una sola ruta** — Solo existe `/` en `src/app/page.tsx`. No crear rutas adicionales.
 3. **Sin server actions** — Usar API routes si se necesita backend.
-4. **Sin build local** — Nunca usar `bun run build` para testear, solo el dev server en puerto 3000.
-5. **z-ai-web-dev-sdk** — Solo en backend, NUNCA en client-side.
-6. **No tests** — No escribir código de testing.
+4. **z-ai-web-dev-sdk** — Solo en backend, NUNCA en client-side.
+5. **No tests** — No escribir código de testing.
+6. **La misma fuente en TODO** — La fuente principal especificada se usa en TODOS los componentes sin excepción.
+7. **Nunca tocar archivos bloqueados** — Si un archivo está en .ai-protection, NO se modifica salvo autorización explícita del usuario.
 
 ---
 
-## ARQUITECTURA DEL EMBUDO — FLUJO OBLIGATORIO
+## ARQUITECTURA DEL EMBUDO — FLUJO
 
 El embudo es una máquina de estados lineal. Cada paso es un componente React que recibe `onComplete` para avanzar al siguiente.
 
@@ -77,7 +215,7 @@ El embudo es una máquina de estados lineal. Cada paso es un componente React qu
    ↓ (audio termina)
 5. QUIZ ESTRATÉGICO (1 pregunta FOMO)
    ↓ (cualquier botón → video overlay → continuar)
-6. [SIGUIENTE PASO — a definir]
+6. [SIGUIENTE PASO — a definir por el usuario]
 ```
 
 ### FunnelOrchestrator:
@@ -94,8 +232,8 @@ El embudo es una máquina de estados lineal. Cada paso es un componente React qu
 - Fondo negro puro (#000)
 - Logo/nombre del método centrado con animación de entrada (fade in + scale)
 - Subtítulo misterioso que genere curiosidad
-- CTA (call to action) pulsante con el color primario
-- Efecto de partículas o glow sutil en el fondo
+- CTA pulsante con el color primario
+- Efecto de glow sutil en el fondo
 - Marca de agua arriba-izquierda
 - Tipografía: la fuente principal especificada
 - Todo centrado vertical y horizontalmente
@@ -120,12 +258,11 @@ El embudo es una máquina de estados lineal. Cada paso es un componente React qu
 
 ### Optimización de video OBLIGATORIA:
 ```bash
-# Comprimir video con ffmpeg (faststart = moov atom al inicio):
 ffmpeg -i input.mp4 -movflags faststart -vf "scale=480:854" -c:v libx264 -b:v 800k -preset slow -an output.mp4
 ```
 - Máximo 1MB para el video pre-llamada
 - Resolución móvil: 480x854
-- faststart SIEMPRE
+- faststart SIEMPRE (moov atom al inicio)
 
 ### Prefetch en layout.tsx:
 ```html
@@ -143,18 +280,14 @@ ffmpeg -i input.mp4 -movflags faststart -vf "scale=480:854" -c:v libx264 -b:v 80
 - Nombre del personaje
 - Animación de ring (icono de teléfono vibrando)
 - Sonido de ringtone + vibración (`navigator.vibrate`)
-- Botón de deslizar para contestar (o tap)
+- Botón de deslizar/tap para contestar
 - Fondo oscuro con blur
-
-### Sonido de vibración:
-- Archivo de audio corto que simula vibración
-- Loop durante la llamada entrante
 
 ---
 
 ## COMPONENTE 4: LLAMADA DE AUDIO CON TELEPROMPTER
 
-### ⚠️ ESTE ES EL COMPONENTE MÁS CRÍTICO — SEGUIR EXACTAMENTE ESTO:
+### ⚠️ COMPONENTE CRÍTICO — SEGUIR EXACTAMENTE:
 
 ### Arquitectura del teleprompter:
 - Audio principal se reproduce con `<audio>` + `preload="auto"`
@@ -162,17 +295,17 @@ ffmpeg -i input.mp4 -movflags faststart -vf "scale=480:854" -c:v libx264 -b:v 80
 - **NUNCA usar requestAnimationFrame para captions** — causa 60 re-renders/segundo y CRASHEA la app en móvil
 - `requestAnimationFrame` SOLO para barras de frecuencia visual
 
-### Formato de captions (SINCRONIZACIÓN CALIBRADA):
+### Formato de captions:
 ```typescript
 const CAPTIONS: { start: number; end: number; text: string }[] = [
   { start: 1.08, end: 3.62, text: 'Texto del bloque 1.' },
   { start: 4.08, end: 6.41, text: 'Texto del bloque 2.' },
-  // ... etc
+  // Los huecos entre bloques son RESPIRACIONES del actor — NO eliminar
 ]
 ```
 
 ### REGLAS DE SINCRONIZACIÓN:
-- Los huecos entre bloques (ej: bloque 1 termina en 3.62s, bloque 2 empieza en 4.08s) son **RESPIRACIONES DEL ACTOR** — NO eliminarlos ni reducirlos
+- Los huecos entre bloques (ej: bloque 1 termina en 3.62s, bloque 2 empieza en 4.08s) son RESPIRACIONES DEL ACTOR — NO eliminarlos ni reducirlos
 - Si eliminas los huecos, el sistema "se come" palabras
 - El timing debe calibrarse con el audio REAL, milisegundo exacto
 - La duración del array de captions debe coincidir con la duración real del audio
@@ -181,7 +314,7 @@ const CAPTIONS: { start: number; end: number; text: string }[] = [
 - Dentro de cada bloque, las palabras se revelan progresivamente
 - Fórmula: revelar durante el 85% de la duración del bloque, 15% final = todo visible
 - Pausa inicial del 10% — efecto de "escribiendo"
-- La ÚLTIMA palabra visible tiene efecto glow (color primario, ej: #66FF66)
+- La ÚLTIMA palabra visible tiene efecto glow (color primario claro)
 - El texto se construye como: palabras previas (join con espacio) + última palabra en `<span>` con glow
 
 ### Posicionamiento del teleprompter:
@@ -194,14 +327,14 @@ const CAPTIONS: { start: number; end: number; text: string }[] = [
 
 ### Prohibido en el teleprompter:
 - ❌ `wordBreak: 'break-word'` — PARTE palabras
-- ❌ `requestAnimationFrame` para actualizar captions — CRASHEA móvil
+- ❌ `requestAnimationFrame` para captions — CRASHEA móvil
 - ❌ Eliminar huecos entre bloques — se come palabras
 - ❌ Más de 1 state update por cada 250ms para captions
 - ❌ Span individual por palabra — causa problemas de layout en móvil
 
 ### Frecuencia visual (barras):
-- Usar Web Audio API: `AnalyserNode` con `fftSize: 64`
-- `requestAnimationFrame` para actualizar barras (esto SÍ es seguro porque solo actualiza un array de números, no captions)
+- Web Audio API: `AnalyserNode` con `fftSize: 64`
+- `requestAnimationFrame` para barras (SÍ es seguro)
 - 24 barras, altura basada en `getByteFrequencyData`
 
 ### Audio de fondo:
@@ -219,15 +352,15 @@ const CAPTIONS: { start: number; end: number; text: string }[] = [
 
 ## COMPONENTE 5: QUIZ ESTRATÉGICO
 
-### Estilo visual (basado en Copy Films):
+### Estilo visual:
 - Fondo negro puro (#000000)
-- Acentos en color primario (ej: #CC0000)
-- Tipografía: la fuente principal especificada (MISMA que toda la interfaz)
-- Ícono de escudo con borde en color primario
-- Texto "VERIFICACIÓN DE ACCESO" o similar con líneas horizontales laterales
-- Contador "1 / 5 PREGUNTAS" — para engañar al ojo (solo hay 1 pregunta real)
-- Opciones con labels en color primario (A. B. C.) sobre fondo oscuro (#1A1A1A)
-- Barra lateral color primario en opción seleccionada
+- Acentos en color primario
+- Tipografía: la fuente principal especificada (MISMA que toda la interfaz, sin excepción)
+- Ícono decorativo con borde en color primario
+- Texto de "verificación" o "acceso exclusivo" con líneas horizontales laterales
+- Contador "1 / 5 PREGUNTAS" — engaña al ojo (solo hay 1 pregunta real)
+- Opciones con labels en color primario (A. B. C. D.) sobre fondo oscuro
+- Barra lateral en color primario en opción seleccionada
 - Marca de agua sutil abajo
 
 ### Pregunta FOMO (adaptar al nicho):
@@ -237,18 +370,12 @@ La pregunta debe generar:
 - **Competencia** — otros se están adelantando
 - **Dolor** — señalar el problema exacto del usuario
 
-Ejemplo estructura:
-> "Sé honesto... ¿En cuál de estas [metáforas de dolor] está [problema del nicho] en este momento?"
-> - A: Escenario de dolor 1 (el que más duele)
-> - B: Escenario de dolor 2 (frustración cotidiana)
-> - C: Escenario de dolor 3 (peor caso, desesperanza)
-
 ### Flujo al responder:
 1. Usuario toca CUALQUIER botón
 2. Inmediatamente: opción se marca con barra lateral + fondo sutil
 3. A los 300ms: video aparece DETRÁS del quiz
-4. El quiz se vuelve **TRASLÚCIDO 50%** (opacity: 0.5) — el video se ve A TRAVÉS
-5. ⚠️ NO poner capa blanca — eso hace que todo se vea blanco/opaco
+4. El quiz se vuelve TRASLÚCIDO 50% (opacity: 0.5) — el video se ve A TRAVÉS
+5. ⚠️ NO poner capa blanca — hace que todo se vea blanco/opaco
 6. El video se reproduce hasta el final
 7. Al terminar: botón "CONTINUAR" aparece con animación (fade up)
 8. Botón CONTINUAR tiene efecto pulse con glow del color primario
@@ -256,112 +383,9 @@ Ejemplo estructura:
 ### Stack de capas (z-index):
 ```
 z-0:  Video (fondo)
-z-10: (reservado, no usar capa blanca)
 z-20: Quiz content (opacity anima a 0.5 al responder)
 z-40: Botón CONTINUAR (aparece después del video)
 ```
-
----
-
-## SISTEMA DE PROTECCIÓN DE CÓDIGO
-
-### ⚠️ Esto es OBLIGATORIO una vez que el usuario aprueba cada componente:
-
-### Paso 1: Crear archivo `.ai-protection`
-```ini
-# ARCHIVO DE PROTECCION — NO MODIFICAR SIN AUTORIZACION
-# Creado: [FECHA]
-# Git Tag: [TAG]
-
-[src/components/funnel/ComponenteA.tsx]
-razon = [Por qué está bloqueado]
-bloqueado = true
-tag = [TAG]
-
-[public/videos/video.mp4]
-razon = Video optimizado — NO reemplazar
-bloqueado = true
-tag = [TAG]
-
-# Comando de restauración:
-# git checkout [TAG] -- src/components/funnel/
-```
-
-### Paso 2: Crear Git Tag
-```bash
-git tag -a "v1.0-[nombre]-locked" -m "🔒 ESTADO BLOQUEADO — [descripción]. NO MODIFICAR sin autorización."
-```
-
-### Paso 3: Crear Pre-commit Hook
-Archivo: `.githooks/pre-commit` (ejecutable)
-
-```bash
-#!/bin/bash
-LOCKED_FILES=(
-  "src/components/funnel/ComponenteA.tsx"
-  "src/components/funnel/ComponenteB.tsx"
-  # ... agregar todos los protegidos
-)
-
-BLOCKED=false
-for file in "${LOCKED_FILES[@]}"; do
-  if git diff --cached --name-only | grep -q "^${file}$"; then
-    echo "🔒 ARCHIVO BLOQUEADO — COMMIT RECHAZADO: $file"
-    BLOCKED=true
-  fi
-done
-
-if [ "$BLOCKED" = true ]; then
-  echo "❌ COMMIT BLOQUEADO — Para restaurar: git checkout [TAG] -- <archivo>"
-  echo "   Para forzar (solo con autorización): git commit --no-verify"
-  exit 1
-fi
-exit 0
-```
-
-### Paso 4: Activar hook
-```bash
-git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit
-```
-
-### Paso 5: Verificar
-```bash
-# Verificar que los hashes coinciden:
-for f in ComponenteA.tsx ComponenteB.tsx; do
-  TAG=$(git ls-tree [TAG] -- src/components/funnel/$f | awk '{print $3}')
-  NOW=$(git hash-object src/components/funnel/$f)
-  [ "$TAG" = "$NOW" ] && echo "✅ $f" || echo "⚠️ $f DIFERENTE"
-done
-```
-
-### Para el usuario — restaurar todo:
-```bash
-git checkout [TAG] -- src/components/funnel/
-```
-
-### Para el usuario — forzar cambio (autorizado):
-```bash
-git commit --no-verify -m "cambio autorizado"
-```
-
----
-
-## DEPLOY A CLOUDFLARE PAGES
-
-### Build:
-```bash
-bun run build
-```
-
-### Deploy:
-```bash
-CLOUDFLARE_API_TOKEN=[TOKEN] npx wrangler pages deploy out --project-name=[PROJECT] --commit-dirty=true
-```
-
-### Verificar:
-- URL: `https://[project].pages.dev`
-- Probar en MÓVIL real (Chrome DevTools no cuenta)
 
 ---
 
@@ -370,24 +394,24 @@ CLOUDFLARE_API_TOKEN=[TOKEN] npx wrangler pages deploy out --project-name=[PROJE
 | Error | Qué pasó | Solución |
 |-------|----------|----------|
 | rAF para captions | 60 re-renders/seg → crash móvil → llamada se cuelga | Usar solo `timeupdate` (4x/seg) |
-| Video 7MB | Tarda 10+ segundos en cargar en móvil | Comprimir a <1MB con faststart |
+| Video grande (>1MB) | Tarda 10+ segundos en cargar en móvil | Comprimir a <1MB con faststart |
 | `wordBreak: break-word` | Parte palabras a la mitad | Usar `keep-all` + `overflow-wrap: anywhere` |
-| `opacity: 0.5` con fondo blanco | Quiz desaparece / se ve blanco | Usar translúcido sobre video, sin capa blanca |
+| Capa blanca en quiz | Todo se ve blanco/desaparece | Translúcido sobre video, sin capa blanca |
 | Sin poster en video | Pantalla negra mientras carga | Poster image del primer frame |
 | Huecos eliminados en captions | Se "comen" palabras | Respetar huecos = respiraciones del actor |
-| Span por palabra | Layout roto en móvil | Join de texto + solo último span con glow |
+| Span individual por palabra | Layout roto en móvil | Join de texto + solo último span con glow |
 | Sin `canplay` | Video no arranca hasta descargar todo | Usar `canplay` (no `canplaythrough`) |
+| Fuentes diferentes entre componentes | Interfaz inconsistente | Misma fuente en TODO sin excepción |
+| No bloquear código aprobado | Cambios accidentales rompen lo que funcionaba | Bloquear INMEDIATAMENTE al aprobar |
 
 ---
 
-## FLUJO DE TRABAJO
+## DEPLOY A CLOUDFLARE PAGES
 
-1. **Desarrollar componente por componente** — nunca todo a la vez
-2. **Frontend primero** — que el usuario vea el resultado visual
-3. **El usuario aprueba** → Bloquear inmediatamente (tag + hook + .ai-protection)
-4. **Avanzar al siguiente componente** — sin tocar los ya bloqueados
-5. **Al final de cada componente**: commit + tag + deploy + verificar
-6. **Si el usuario pide cambios en algo bloqueado**: desbloquear con `--no-verify`, cambiar, volver a bloquear con nuevo tag
+```bash
+bun run build
+CLOUDFLARE_API_TOKEN=[TOKEN] npx wrangler pages deploy out --project-name=[PROJECT] --commit-dirty=true
+```
 
 ---
 
@@ -402,12 +426,7 @@ src/
   components/
     funnel/
       FunnelOrchestrator.tsx
-      CinematicLanding.tsx
-      PreCallVideo.tsx
-      CallHook.tsx
-      AudioCallScreen.tsx
-      FakeQuiz.tsx
-      [Siguientes componentes...]
+      [Componentes del embudo...]
 public/
   videos/             — Videos comprimidos con faststart
   audio/              — Audios de llamada, fondo, vibración
@@ -419,16 +438,36 @@ public/
 
 ---
 
+## FLUJO DE TRABAJO RESUMIDO
+
+```
+1. Construir componente → Mostrar al usuario
+2. Usuario aprueba → BLOQUEAR INMEDIATAMENTE (tag + hook + .ai-protection)
+3. Construir SIGUIENTE componente (sin tocar los bloqueados)
+4. Repetir hasta completar el embudo
+5. Si el usuario pide cambios en algo bloqueado → desbloquear con --no-verify, cambiar, volver a bloquear
+```
+
+---
+
 ## PROMPT DE INICIO
 
 Copia esto al inicio de tu chat:
 
 ```
-Actúa como un desarrollador experto en Next.js 16. Voy a darte las credenciales y especificaciones
-para construir un embudo interactivo cinematográfico mobile-first. Sigue las instrucciones del
-MASTER PROMPT que te proporcionaré al pie de la letra. No omitas ninguna sección. No inventes
-configuraciones — usa exactamente lo que yo te dé. Cuando yo apruebe un componente, lo bloqueas
-inmediatamente con git tag + pre-commit hook + .ai-protection. ¿Entendido?
+Actúa como un desarrollador experto en Next.js 16. Voy a darte las credenciales y
+especificaciones para construir un embudo interactivo cinematográfico mobile-first.
+Sigue las instrucciones del MASTER PROMPT que te proporcionaré al pie de la letra.
+No omitas ninguna sección. No inventes configuraciones — usa exactamente lo que yo te dé.
+
+REGLA #1: Cuando yo apruebe un componente, lo bloqueas INMEDIATAMENTE con:
+1) Git tag inmutable
+2) Archivo .ai-protection actualizado
+3) Pre-commit hook que BLOQUEE cualquier commit que modifique archivos protegidos
+4) Verificación de hashes para confirmar que nada cambió
+
+Lo bloqueado NO se toca jamás. Lo nuevo va en archivos NUEVOS.
+¿Entendido?
 ```
 
 ---
