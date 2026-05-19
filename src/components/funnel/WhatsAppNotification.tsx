@@ -37,33 +37,21 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
     return () => clearInterval(interval)
   }, [])
 
-  // Play notification sound + vibrate on mount
+  // Play notification sound + vibrate on mount (NO auto-advance)
   useEffect(() => {
     if (notificationPlayedRef.current) return
     notificationPlayedRef.current = true
 
-    // Sound
     const audio = new Audio('/audio/notificacion.aac')
     audio.volume = 1.0
     audio.play().catch(() => {})
     audioRef.current = audio
 
-    // Vibration — same pattern as call
     if (navigator.vibrate) {
       navigator.vibrate([400, 200, 600, 300, 400, 200, 600, 300])
     }
 
-    // Auto-advance after 6 seconds
-    const timer = setTimeout(() => {
-      if (!completedRef.current) {
-        completedRef.current = true
-        if (navigator.vibrate) navigator.vibrate(0)
-        onCompleteRef.current()
-      }
-    }, 6000)
-
     return () => {
-      clearTimeout(timer)
       if (navigator.vibrate) navigator.vibrate(0)
       if (audioRef.current) {
         audioRef.current.pause()
@@ -71,6 +59,13 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
       }
     }
   }, [])
+
+  const handleNotificationClick = () => {
+    if (completedRef.current) return
+    completedRef.current = true
+    if (navigator.vibrate) navigator.vibrate(0)
+    onCompleteRef.current()
+  }
 
   return (
     <motion.div
@@ -121,18 +116,15 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
       >
         <span>{currentTime}</span>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-          {/* Signal bars */}
           <svg width="14" height="11" viewBox="0 0 16 12" fill="white">
             <rect x="0" y="8" width="3" height="4" rx="0.5" />
             <rect x="4" y="5" width="3" height="7" rx="0.5" />
             <rect x="8" y="2" width="3" height="10" rx="0.5" />
             <rect x="12" y="0" width="3" height="12" rx="0.5" />
           </svg>
-          {/* Wifi */}
           <svg width="14" height="11" viewBox="0 0 24 24" fill="white">
             <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z" />
           </svg>
-          {/* Battery */}
           <svg width="20" height="11" viewBox="0 0 22 12" fill="none">
             <rect x="0.5" y="0.5" width="18" height="11" rx="2" stroke="white" strokeWidth="1" />
             <rect x="2" y="2" width="14" height="8" rx="1" fill="white" />
@@ -152,12 +144,10 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
           zIndex: 10,
         }}
       >
-        {/* Lock icon */}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 10px', display: 'block', opacity: 0.7 }}>
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        {/* Large time */}
         <div style={{
           color: '#fff',
           fontSize: 'clamp(3.5rem, 14vw, 5rem)',
@@ -169,7 +159,6 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
         }}>
           {currentTime}
         </div>
-        {/* Date */}
         <div style={{
           color: 'rgba(255,255,255,0.8)',
           fontSize: 'clamp(0.72rem, 2.2vw, 0.85rem)',
@@ -182,11 +171,22 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
         </div>
       </div>
 
-      {/* ── WhatsApp Notification Card ── */}
+      {/* ── WhatsApp Notification Card — CLICKABLE with bounce + glow ── */}
       <motion.div
         initial={{ y: -20, opacity: 0, scale: 0.96 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
+        animate={{
+          y: 0,
+          opacity: 1,
+          scale: 1,
+        }}
         transition={{ delay: 0.4, duration: 0.5, ease: 'easeOut' }}
+        onAnimationComplete={() => {
+          // After entry animation, add CSS bounce class
+          const el = document.getElementById('notif-card')
+          if (el) el.style.animation = 'notifBounce 2.5s ease-in-out 1.5s infinite'
+        }}
+        onClick={handleNotificationClick}
+        id="notif-card"
         style={{
           position: 'absolute',
           top: '36%',
@@ -200,11 +200,22 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
           WebkitBackdropFilter: 'blur(30px)',
           boxShadow: '0 4px 30px rgba(0,0,0,0.5), 0 0 20px rgba(37,211,102,0.12)',
           border: '1px solid rgba(37,211,102,0.15)',
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
+        {/* Pulsing green glow border — CSS animation */}
+        <div style={{
+          position: 'absolute',
+          inset: -2,
+          borderRadius: '20px',
+          border: '2px solid rgba(37,211,102,0.3)',
+          animation: 'notifPulse 2s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+
         {/* Notification header row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          {/* WhatsApp icon */}
           <div style={{
             width: 20,
             height: 20,
@@ -229,7 +240,6 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
 
         {/* Message content row */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {/* Profile photo */}
           <div style={{
             width: 44,
             height: 44,
@@ -249,13 +259,11 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
             />
           </div>
 
-          {/* Text content */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600, marginBottom: 3, lineHeight: 1.2 }}>
               Zyra
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {/* Mic icon for audio message */}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,255,255,0.45)" style={{ flexShrink: 0 }}>
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z" />
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
@@ -266,14 +274,13 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
             </div>
           </div>
 
-          {/* Right arrow */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </div>
       </motion.div>
 
-      {/* ── MÉTODO MAGNÉTICO — bottom center, no red bar ── */}
+      {/* ── MÉTODO MAGNÉTICO — bottom center ── */}
       <div
         style={{
           position: 'absolute',
@@ -297,6 +304,18 @@ export default function WhatsAppNotification({ onComplete }: WhatsAppNotificatio
           MÉTODO MAGNÉTICO
         </span>
       </div>
+
+      {/* ── CSS animations ── */}
+      <style>{`
+        @keyframes notifPulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.005); }
+        }
+        @keyframes notifBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+      `}</style>
     </motion.div>
   )
 }

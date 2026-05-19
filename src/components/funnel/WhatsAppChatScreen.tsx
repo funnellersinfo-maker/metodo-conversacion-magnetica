@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface WhatsAppChatScreenProps {
   onComplete: () => void
@@ -15,7 +15,7 @@ interface VoiceMessage {
   playing: boolean
   progress: number
   played: boolean
-  needsUserPlay: boolean // only true for first message
+  needsUserPlay: boolean
 }
 
 export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenProps) {
@@ -26,14 +26,14 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     { id: 4, src: '/audio/wha-voices/voice4.wav', duration: 0, arrived: false, playing: false, progress: 0, played: false, needsUserPlay: false },
     { id: 5, src: '/audio/wha-voices/voice5.wav', duration: 0, arrived: false, playing: false, progress: 0, played: false, needsUserPlay: false },
   ])
-  const [credentialStep, setCredentialStep] = useState(0) // 0=none, 1=username, 2=password
+  const [credentialStep, setCredentialStep] = useState(0)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const currentPlayingRef = useRef<number>(0)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   const messagesRef = useRef(messages)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const incomingSoundRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     onCompleteRef.current = onComplete
@@ -43,7 +43,22 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     messagesRef.current = messages
   }, [messages])
 
-  // Auto-scroll to bottom
+  // Preload incoming message sound
+  useEffect(() => {
+    incomingSoundRef.current = new Audio('/audio/wha-incoming.mp3')
+    incomingSoundRef.current.volume = 0.7
+    incomingSoundRef.current.preload = 'auto'
+  }, [])
+
+  const playIncomingSound = useCallback(() => {
+    if (incomingSoundRef.current) {
+      // Clone to allow overlapping plays
+      const sound = incomingSoundRef.current.cloneNode() as HTMLAudioElement
+      sound.volume = 0.7
+      sound.play().catch(() => {})
+    }
+  }, [])
+
   const scrollToBottom = useCallback(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
@@ -75,27 +90,30 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     loadDurations()
   }, [])
 
-  // First message arrives on mount — user must click play
+  // First message arrives after entering chat — user must click play
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Play incoming sound
+      playIncomingSound()
       setMessages(prev => {
         const next = [...prev]
         next[0] = { ...next[0], arrived: true }
         return next
       })
       setTimeout(scrollToBottom, 200)
-    }, 800)
+    }, 600)
     return () => clearTimeout(timer)
-  }, [scrollToBottom])
+  }, [scrollToBottom, playIncomingSound])
 
-  // User clicks play on first message
   const handleUserPlay = useCallback(() => {
     playVoice(0)
   }, [])
 
-  // Arrive and auto-play a message (for messages 2-5)
   const arriveAndPlay = useCallback((index: number) => {
     if (index >= 5) return
+
+    // Play incoming sound
+    playIncomingSound()
 
     setMessages(prev => {
       const next = [...prev]
@@ -105,14 +123,13 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
 
     setTimeout(scrollToBottom, 200)
 
-    // Auto-play after a small delay
+    // Auto-play after short delay
     setTimeout(() => {
       playVoice(index)
     }, 600)
-  }, [scrollToBottom])
+  }, [scrollToBottom, playIncomingSound])
 
   const playVoice = useCallback((index: number) => {
-    // Stop any current audio
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ''
@@ -128,8 +145,6 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
       return next
     })
 
-    currentPlayingRef.current = index
-
     audio.addEventListener('timeupdate', () => {
       if (audio.duration > 0) {
         const prog = (audio.currentTime / audio.duration) * 100
@@ -139,7 +154,6 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
           return next
         })
 
-        // When 99% reached, trigger next
         if (prog >= 99 && !messagesRef.current[index].played) {
           setMessages(prev => {
             const next = [...prev]
@@ -150,14 +164,15 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
           if (index < 4) {
             setTimeout(() => arriveAndPlay(index + 1), 500)
           } else {
-            // Last voice — send credentials
+            // Last voice done → credentials → TikTok
             setTimeout(() => {
+              playIncomingSound()
               setCredentialStep(1)
               setTimeout(scrollToBottom, 200)
               setTimeout(() => {
+                playIncomingSound()
                 setCredentialStep(2)
                 setTimeout(scrollToBottom, 200)
-                // After 4 seconds, go to TikTok login
                 setTimeout(() => {
                   if (!completedRef.current) {
                     completedRef.current = true
@@ -183,9 +198,11 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
           setTimeout(() => arriveAndPlay(index + 1), 500)
         } else {
           setTimeout(() => {
+            playIncomingSound()
             setCredentialStep(1)
             setTimeout(scrollToBottom, 200)
             setTimeout(() => {
+              playIncomingSound()
               setCredentialStep(2)
               setTimeout(scrollToBottom, 200)
               setTimeout(() => {
@@ -201,7 +218,7 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     })
 
     audio.play().catch(() => {})
-  }, [arriveAndPlay, scrollToBottom])
+  }, [arriveAndPlay, scrollToBottom, playIncomingSound])
 
   const formatDuration = (sec: number) => {
     if (!sec || !isFinite(sec)) return '0:00'
@@ -215,7 +232,6 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
   }
 
-  // Deterministic waveform bars
   const getWaveformBars = (msgIndex: number) => {
     const bars: number[] = []
     for (let j = 0; j < 30; j++) {
@@ -292,7 +308,7 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
           </div>
         </div>
 
-        {/* Chat header row — all non-interactive */}
+        {/* Chat header row — non-interactive */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -318,7 +334,6 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
             />
           </div>
 
-          {/* Name + status with MÉTODO MAGNÉTICO */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: '#e9edef', fontSize: '0.92rem', fontWeight: 500, lineHeight: 1.2 }}>Zyra</div>
             <div style={{ color: '#8696a0', fontSize: '0.68rem', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -372,216 +387,215 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
           </span>
         </div>
 
-        {messages.map((msg, i) => (
-          <AnimatePresence key={msg.id}>
-            {msg.arrived && (
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  marginBottom: 4,
-                }}
-              >
-                <div style={{
-                  background: '#1f2c34',
-                  borderRadius: '8px 0 8px 8px',
-                  padding: '7px 8px 5px',
-                  maxWidth: '80%',
-                  position: 'relative',
-                  boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
-                }}>
-                  {/* Tail triangle */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: -6,
-                    width: 0,
-                    height: 0,
-                    borderTop: '8px solid #1f2c34',
-                    borderLeft: '6px solid transparent',
-                  }} />
+        {messages.map((msg, i) => {
+          // If not arrived, render nothing for this slot
+          if (!msg.arrived) return null
 
-                  {/* Voice content */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    {/* Play/Pause button */}
-                    {msg.needsUserPlay && !msg.playing && !msg.played ? (
-                      /* CLICKABLE play button for first message with shimmer effect */
-                      <button
-                        onClick={handleUserPlay}
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: '50%',
-                          background: '#25D366',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          position: 'relative',
-                          overflow: 'hidden',
-                          boxShadow: '0 0 12px rgba(37,211,102,0.5), 0 0 24px rgba(37,211,102,0.25)',
-                          outline: 'none',
-                          WebkitTapHighlightColor: 'transparent',
-                        }}
-                      >
-                        {/* Shimmer sweep effect */}
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)',
-                          animation: 'shimmerSweep 2s ease-in-out infinite',
-                        }} />
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style={{ position: 'relative', zIndex: 1 }}>
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </button>
-                    ) : (
-                      /* Normal (non-interactive) play/pause indicator */
-                      <div style={{
-                        width: 30,
-                        height: 30,
+          return (
+            <motion.div
+              key={`voice-${msg.id}`}
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                marginBottom: 4,
+              }}
+            >
+              <div style={{
+                background: '#1f2c34',
+                borderRadius: '8px 0 8px 8px',
+                padding: '7px 8px 5px',
+                maxWidth: '80%',
+                position: 'relative',
+                boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+              }}>
+                {/* Tail triangle */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: -6,
+                  width: 0,
+                  height: 0,
+                  borderTop: '8px solid #1f2c34',
+                  borderLeft: '6px solid transparent',
+                }} />
+
+                {/* Voice content */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  {/* Play/Pause button */}
+                  {msg.needsUserPlay && !msg.playing && !msg.played ? (
+                    /* CLICKABLE play button for first message with shimmer */
+                    <button
+                      onClick={handleUserPlay}
+                      style={{
+                        width: 34,
+                        height: 34,
                         borderRadius: '50%',
                         background: '#25D366',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        boxShadow: msg.playing ? '0 1px 3px rgba(37,211,102,0.3)' : 'none',
-                      }}>
-                        {msg.playing ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                            <rect x="6" y="4" width="4" height="16" rx="1" />
-                            <rect x="14" y="4" width="4" height="16" rx="1" />
-                          </svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Waveform */}
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxShadow: '0 0 12px rgba(37,211,102,0.5), 0 0 24px rgba(37,211,102,0.25)',
+                        outline: 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)',
+                        animation: 'shimmerSweep 2s ease-in-out infinite',
+                      }} />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style={{ position: 'relative', zIndex: 1 }}>
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </button>
+                  ) : (
+                    /* Normal play/pause indicator */
                     <div style={{
-                      flex: 1,
-                      minWidth: 0,
-                      height: 26,
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      background: '#25D366',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 1.5,
-                      padding: '0 2px',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: msg.playing ? '0 1px 3px rgba(37,211,102,0.3)' : 'none',
                     }}>
-                      {getWaveformBars(i).map((barHeight, j) => {
-                        const filled = (j / 30) * 100 <= msg.progress
-                        return (
-                          <div
-                            key={j}
-                            style={{
-                              width: 2.5,
-                              height: barHeight,
-                              borderRadius: 1.5,
-                              background: filled ? '#25D366' : 'rgba(255,255,255,0.18)',
-                              flexShrink: 0,
-                              transition: 'background 0.15s',
-                            }}
-                          />
-                        )
-                      })}
+                      {msg.playing ? (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Timestamp */}
+                  {/* Waveform */}
                   <div style={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: 26,
                     display: 'flex',
-                    justifyContent: 'flex-end',
                     alignItems: 'center',
-                    gap: 4,
-                    marginTop: 2,
-                    paddingRight: 2,
+                    gap: 1.5,
+                    padding: '0 2px',
                   }}>
-                    <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>
-                      {formatDuration(msg.duration)}
-                    </span>
-                    <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>
-                      {getNowTime()}
-                    </span>
+                    {getWaveformBars(i).map((barHeight, j) => {
+                      const filled = (j / 30) * 100 <= msg.progress
+                      return (
+                        <div
+                          key={j}
+                          style={{
+                            width: 2.5,
+                            height: barHeight,
+                            borderRadius: 1.5,
+                            background: filled ? '#25D366' : 'rgba(255,255,255,0.18)',
+                            flexShrink: 0,
+                            transition: 'background 0.15s',
+                          }}
+                        />
+                      )
+                    })}
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        ))}
+
+                {/* Timestamp */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginTop: 2,
+                  paddingRight: 2,
+                }}>
+                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>
+                    {formatDuration(msg.duration)}
+                  </span>
+                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>
+                    {getNowTime()}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          )
+        })}
 
         {/* Credentials */}
-        <AnimatePresence>
-          {credentialStep >= 1 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.35 }}
-              style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 4 }}
-            >
-              <div style={{
-                background: '#1f2c34',
-                borderRadius: '8px 0 8px 8px',
-                padding: '6px 10px 4px',
-                maxWidth: '80%',
-                position: 'relative',
-                boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
-              }}>
-                <div style={{ position: 'absolute', top: 0, left: -6, width: 0, height: 0, borderTop: '8px solid #1f2c34', borderLeft: '6px solid transparent' }} />
-                <div style={{ color: '#e9edef', fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>
-                  @ELCODIGODETEXTO
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>{getNowTime()}</span>
-                  <svg width="14" height="8" viewBox="0 0 16 9" fill="none" style={{ flexShrink: 0 }}>
-                    <path d="M0 4.5L2.5 7L8 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M5 4.5L7.5 7L13 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+        {credentialStep >= 1 && (
+          <motion.div
+            key="cred-user"
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35 }}
+            style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 4 }}
+          >
+            <div style={{
+              background: '#1f2c34',
+              borderRadius: '8px 0 8px 8px',
+              padding: '6px 10px 4px',
+              maxWidth: '80%',
+              position: 'relative',
+              boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: -6, width: 0, height: 0, borderTop: '8px solid #1f2c34', borderLeft: '6px solid transparent' }} />
+              <div style={{ color: '#e9edef', fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                @ELCODIGODETEXTO
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>{getNowTime()}</span>
+                <svg width="14" height="8" viewBox="0 0 16 9" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M0 4.5L2.5 7L8 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 4.5L7.5 7L13 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-        <AnimatePresence>
-          {credentialStep >= 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.35 }}
-              style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 4 }}
-            >
-              <div style={{
-                background: '#1f2c34',
-                borderRadius: '8px 0 8px 8px',
-                padding: '6px 10px 4px',
-                maxWidth: '80%',
-                position: 'relative',
-                boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
-              }}>
-                <div style={{ position: 'absolute', top: 0, left: -6, width: 0, height: 0, borderTop: '8px solid #1f2c34', borderLeft: '6px solid transparent' }} />
-                <div style={{ color: '#e9edef', fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>
-                  DANTE000
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                  <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>{getNowTime()}</span>
-                  <svg width="14" height="8" viewBox="0 0 16 9" fill="none" style={{ flexShrink: 0 }}>
-                    <path d="M0 4.5L2.5 7L8 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M5 4.5L7.5 7L13 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+        {credentialStep >= 2 && (
+          <motion.div
+            key="cred-pass"
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.35 }}
+            style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 4 }}
+          >
+            <div style={{
+              background: '#1f2c34',
+              borderRadius: '8px 0 8px 8px',
+              padding: '6px 10px 4px',
+              maxWidth: '80%',
+              position: 'relative',
+              boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: -6, width: 0, height: 0, borderTop: '8px solid #1f2c34', borderLeft: '6px solid transparent' }} />
+              <div style={{ color: '#e9edef', fontSize: '0.88rem', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                DANTE000
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                <span style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>{getNowTime()}</span>
+                <svg width="14" height="8" viewBox="0 0 16 9" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M0 4.5L2.5 7L8 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 4.5L7.5 7L13 1.5" stroke="rgba(37,211,102,0.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <div style={{ height: 1 }} />
       </div>
@@ -634,7 +648,7 @@ export default function WhatsAppChatScreen({ onComplete }: WhatsAppChatScreenPro
         </svg>
       </div>
 
-      {/* ── Shimmer keyframes (injected once) ── */}
+      {/* ── Shimmer keyframes ── */}
       <style>{`
         @keyframes shimmerSweep {
           0% { transform: translateX(-150%); }
