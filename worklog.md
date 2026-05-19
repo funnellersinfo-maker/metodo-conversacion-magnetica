@@ -42,3 +42,27 @@ Stage Summary:
 - Audio blocks wider and more spacious in chat bubbles
 - All audios accumulate properly in chat history
 - Deployed to metodo-dante.pages.dev
+
+---
+Task ID: 2
+Agent: main
+Task: New incoming sound + voice reverb + TikTok login redesign + TikTok feed screen
+
+Work Log:
+- Copied new incoming message sound (SONIDO MENSAJE ENTRANTE.aac → /public/audio/wha-incoming.aac)
+- Updated WhatsAppChatScreen to use new .aac sound file
+- Added Web Audio API reverb effect to voice messages: 2% wet mix, ConvolverNode with generated impulse response (1.8s decay, exponential)
+- Reverb is EASILY toggleable: REVERB_ENABLED = true/false at top of component
+- Redesigned TikTokLoginScreen with: real TikTok SVG logo, non-editable username/password fields (pointer-events: none), functional eye toggle for password, "Iniciar sesión" button goes to feed
+- Created TikTokFeedScreen with: full-screen video placeholder, right-side buttons (like/comment/share), bottom-left info (@copyfilms.official, caption, music), bottom nav bar (Inicio/Amigos/+/Mensajes/Perfil)
+- TikTokFeedScreen comments panel: slides up with spring animation, 10 pre-populated Spanish comments, FIJADO badge on pinned comment, real-time simulated likes (incrementing every 2-4s), real-time simulated comments (new every 5-8s), Instagram + comment input, send button, X close
+- Updated FunnelOrchestrator: added tiktok_feed step after tiktok_login, hidden brand watermark on both tiktok screens
+- Built and deployed to https://metodo-dante.pages.dev
+- Created git tag v5.0-tiktok-feed-locked
+
+Stage Summary:
+- New incoming sound: wha-incoming.aac (user's attached file)
+- Reverb effect on voices: ON (2% mix), easily toggleable via REVERB_ENABLED constant
+- TikTok login: real logo, non-editable fields, eye toggle works, button goes to feed
+- TikTok feed: full interface with real-time likes accumulating, real-time comments, user can write Instagram + comment and send
+- Deployed to metodo-dante.pages.dev
