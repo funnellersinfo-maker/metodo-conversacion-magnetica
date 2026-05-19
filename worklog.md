@@ -1,22 +1,22 @@
 ---
-Task ID: 2
+Task ID: 3
 Agent: Main Agent
-Task: Redesign FakeQuiz with Copy Films luxury style, fix 50% lighten, create FOMO question
+Task: Audit and harden git protection — make it IMPOSSIBLE to modify locked funnel code
 
 Work Log:
-- Analyzed reference image (Copy Films) via VLM: black bg (#000), red accents (#CC0000), gray text (#CCC), sans-serif, shield icon, horizontal lines
-- Completely rewrote FakeQuiz.tsx with Copy Films aesthetic
-- Changed from 3 questions to 1 strategic FOMO question: "¿Cuántos hombres están viendo esto mismo ahora... y están a punto de adelantarse?"
-- Fixed critical 50% lighten bug: replaced `opacity: 0.5` (which made quiz DISAPPEAR) with white overlay `rgba(255,255,255,0.50)` on z-10 layer, video on z-0, quiz content on z-20
-- Layer stack: Video (bottom) → White wash 50% (middle) → Quiz content faded to 35% (top)
-- Added shield icon with red border, "VERIFICACIÓN DE ACCESO" header with horizontal lines
-- Switched font from Cinzel to Inter (matching Copy Films sans-serif style)
-- Added Inter font to Google Fonts import in layout.tsx
-- Red accent bar on selected option
-- Deployed to Cloudflare Pages
+- Verified all 6 funnel component files match v2.0-quiz-locked tag SHA hashes (all ✅ IDÉNTICO)
+- Verified media assets tracked in git (videos, audio) match tags
+- Created .githooks/pre-commit hook that BLOCKS any commit modifying protected files
+- Tested the hook: attempted commit of AudioCallScreen.tsx → COMMIT RECHAZADO ✅
+- Set git config core.hooksPath to .githooks/ (so hooks are version-controlled)
+- Restored test-modified file back to locked state
+- Final verification: all 6 files still match tag hashes exactly
+- Updated v2.0-quiz-locked tag to include the hook
 
 Stage Summary:
-- FakeQuiz completely redesigned with Copy Films style
-- 50% lighten effect now works correctly (white wash, not opacity fade)
-- Single FOMO question creates urgency/competition
-- Deployed at https://metodo-dante.pages.dev
+- 3-layer protection system now active:
+  1. Git tags (v1.0-llamada-locked, v2.0-quiz-locked) — immutable snapshots
+  2. .ai-protection file — contract for AI agents
+  3. Pre-commit hook — ACTIVELY BLOCKS commits that modify protected files
+- To bypass (only with user authorization): git commit --no-verify
+- To restore: git checkout v2.0-quiz-locked -- <file>
