@@ -1,7 +1,7 @@
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  ARCHIVO DE PROTECCION — NO MODIFICAR SIN AUTORIZACION         ║
 # ║  Creado: 2025-05-18                                           ║
-# ║  Último tag: v2.0-quiz-locked                                 ║
+# ║  Último tag: v3.0-whatsapp-locked                             ║
 # ╚══════════════════════════════════════════════════════════════════╝
 #
 # Este archivo define los componentes que estan PERMANENTEMENTE BLOQUEADOS.
@@ -10,7 +10,7 @@
 # DEBE preguntar primero y obtener confirmacion.
 #
 # Para restaurar cualquier archivo a su estado bloqueado:
-#   git checkout v2.0-quiz-locked -- <archivo>
+#   git checkout v3.0-whatsapp-locked -- <archivo>
 
 # ============ ARCHIVOS PROTEGIDOS (NO TOCAR) ============
 
@@ -20,9 +20,9 @@ bloqueado = true
 tag = v1.0-llamada-locked
 
 [src/components/funnel/FunnelOrchestrator.tsx]
-razon = Orquestador de flujo funcionando perfecto — llamada → quiz → siguiente
+razon = Orquestador de flujo funcionando perfecto — todos los pasos
 bloqueado = true
-tag = v1.0-llamada-locked
+tag = v3.0-whatsapp-locked
 
 [src/components/funnel/FakeQuiz.tsx]
 razon = Quiz PERFECTO — estilo Copy Films, pregunta cementerios FOMO, translúcido 50%, video overlay, botón continuar. APROBADO POR USUARIO.
@@ -44,6 +44,71 @@ razon = Pantalla de llamada entrante con swipe/answer
 bloqueado = true
 tag = v2.0-quiz-locked
 
+[src/components/funnel/PodcastScreen.tsx]
+razon = Podcast Spotify-style con glow audio-reactivo, play/pause decorativo, heart funcional
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[src/components/funnel/ClownVideoScreen.tsx]
+razon = Video payaso con botón TOCA centrado via CSS Grid, sonido sincronizado
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[src/components/funnel/WhatsAppNotification.tsx]
+razon = Notificación WhatsApp lock screen con wallpaper bosque, hora real, Zyra, sonido+vibración, watermark abajo sin barra roja
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[src/components/funnel/WhatsAppChatScreen.tsx]
+razon = Chat WhatsApp con 5 voice messages secuenciales, sparkle antes de cada uno, credenciales TikTok al final
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[src/components/funnel/TikTokLoginScreen.tsx]
+razon = Login TikTok con datos pre-llenados, ojito contraseña, NO bloqueado — bajo construcción
+bloqueado = false
+tag = v3.0-whatsapp-locked
+
+[public/images/notification/zyra-profile.jpg]
+razon = Foto de perfil de Zyra — mujer con lentes B&W
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/images/notification/wallpaper.jpg]
+razon = Wallpaper bosque oscuro para notificación WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/images/chat/wallpaper.jpg]
+razon = Wallpaper fondo chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/audio/wha-voices/voice1.wav]
+razon = Voice note 1 de Zyra en chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/audio/wha-voices/voice2.wav]
+razon = Voice note 2 de Zyra en chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/audio/wha-voices/voice3.wav]
+razon = Voice note 3 de Zyra en chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/audio/wha-voices/voice4.wav]
+razon = Voice note 4 de Zyra en chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
+[public/audio/wha-voices/voice5.wav]
+razon = Voice note 5 de Zyra en chat WhatsApp
+bloqueado = true
+tag = v3.0-whatsapp-locked
+
 [public/videos/dante-llamando.mp4]
 razon = Video comprimido 825KB faststart — NO reemplazar
 bloqueado = true
@@ -54,35 +119,19 @@ razon = Video quiz comprimido 1.6MB faststart — NO reemplazar
 bloqueado = true
 tag = v1.0-llamada-locked
 
-[public/videos/dante-llamando-poster.jpg]
-razon = Poster frame para video instantaneo
+[public/videos/payaso-vol1.mp4]
+razon = Video payaso 12MB faststart 480x854
 bloqueado = true
-tag = v1.0-llamada-locked
-
-[public/audio/llamada-dante.m4a]
-razon = Audio de llamada con timing calibrado
-bloqueado = true
-tag = v1.0-llamada-locked
-
-[public/audio/fondo-llamada.aac]
-razon = Audio de fondo de llamada
-bloqueado = true
-tag = v1.0-llamada-locked
-
-[public/audio/vibration.mp3]
-razon = Sonido de vibracion para notificacion
-bloqueado = true
-tag = v1.0-llamada-locked
+tag = v3.0-whatsapp-locked
 
 # ============ COMANDO DE RESTAURACION ============
 # Si algo se rompe, ejecutar para volver al estado bloqueado:
 #
-# Restaurar TODO (llamada + quiz):
-#   git checkout v2.0-quiz-locked -- src/components/funnel/
+# Restaurar TODO:
+#   git checkout v3.0-whatsapp-locked -- src/components/funnel/
 #
 # Restaurar solo la llamada:
 #   git checkout v1.0-llamada-locked -- src/components/funnel/AudioCallScreen.tsx
-#   git checkout v1.0-llamada-locked -- src/components/funnel/FunnelOrchestrator.tsx
 #   git checkout v1.0-llamada-locked -- src/components/funnel/PreCallVideo.tsx
 #   git checkout v1.0-llamada-locked -- src/components/funnel/CinematicLanding.tsx
 #
