@@ -153,25 +153,26 @@ export default function ClownVideoScreen({ onComplete }: ClownVideoScreenProps) 
               left: '50%',
               transform: 'translate(-50%, -50%)',
               zIndex: 10,
-              background: 'rgba(0,0,0,0.7)',
-              border: '2px solid #CC0000',
-              borderRadius: '12px',
-              padding: '22px 44px',
+              background: 'rgba(0,0,0,0.75)',
+              border: '3px solid #CC0000',
+              borderRadius: '16px',
+              padding: '28px 48px',
               color: 'white',
               fontFamily: "'Cinzel', serif",
-              fontSize: 'clamp(0.85rem, 3.2vw, 1.05rem)',
+              fontSize: 'clamp(1rem, 4vw, 1.25rem)',
               fontWeight: 700,
-              letterSpacing: '0.12em',
-              boxShadow: '0 0 30px rgba(204,0,0,0.5)',
+              letterSpacing: '0.14em',
+              boxShadow: '0 0 40px rgba(204,0,0,0.6)',
               cursor: 'pointer',
               minWidth: '44px',
               minHeight: '44px',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
               userSelect: 'none',
+              textAlign: 'center',
             }}
           >
-            🔇 TAP PARA ACTIVAR SONIDO
+            🔊 TOCA PARA ACTIVAR SONIDO
           </motion.button>
         )}
       </AnimatePresence>

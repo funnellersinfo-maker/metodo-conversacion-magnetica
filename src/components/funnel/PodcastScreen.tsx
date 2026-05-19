@@ -373,11 +373,11 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
           <PreviousIcon />
         </button>
 
-        {/* Play / Pause — main functional */}
+        {/* Play / Pause — decorative only, no action */}
         <button
           type="button"
-          onClick={togglePlay}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
+          tabIndex={-1}
+          aria-hidden="true"
           style={{
             width: 'clamp(52px, 14vw, 64px)',
             height: 'clamp(52px, 14vw, 64px)',
@@ -388,19 +388,11 @@ export default function PodcastScreen({ onComplete }: PodcastScreenProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.06)'
-            e.currentTarget.style.boxShadow = '0 0 24px rgba(204,0,0,0.35)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = 'none'
+            cursor: 'default',
+            opacity: 0.3,
           }}
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          <PauseIcon />
         </button>
 
         {/* Next — decorative */}

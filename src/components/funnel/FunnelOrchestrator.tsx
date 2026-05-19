@@ -9,8 +9,9 @@ import AudioCallScreen from './AudioCallScreen'
 import FakeQuiz from './FakeQuiz'
 import PodcastScreen from './PodcastScreen'
 import ClownVideoScreen from './ClownVideoScreen'
+import WhatsAppNotification from './WhatsAppNotification'
 
-type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video'
+type FunnelStep = 'landing' | 'pre_call_video' | 'call_ringing' | 'call_audio' | 'quiz' | 'podcast' | 'clown_video' | 'whatsapp_notification'
 
 const stepOrder: FunnelStep[] = [
   'landing',
@@ -20,6 +21,7 @@ const stepOrder: FunnelStep[] = [
   'quiz',
   'podcast',
   'clown_video',
+  'whatsapp_notification',
 ]
 
 export function FunnelOrchestrator() {
@@ -49,6 +51,8 @@ export function FunnelOrchestrator() {
         return <PodcastScreen onComplete={goToNextStep} />
       case 'clown_video':
         return <ClownVideoScreen onComplete={goToNextStep} />
+      case 'whatsapp_notification':
+        return <WhatsAppNotification onComplete={goToNextStep} />
       default:
         return null
     }
