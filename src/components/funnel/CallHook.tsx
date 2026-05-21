@@ -158,7 +158,7 @@ export default function CallHook({ onAnswer }: CallHookProps) {
             border: '3px solid #4CAF50', overflow: 'hidden',
             boxShadow: '0 0 30px rgba(76, 175, 80, 0.3), 0 0 60px rgba(76, 175, 80, 0.15)',
           }}>
-            <img src="/images/dante-profile.jpg" alt="Dante"
+            <img src="/images/dante-profile.jpg" alt="Dante" loading="eager" fetchPriority="high" decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </motion.div>

@@ -328,7 +328,7 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
             width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden',
             boxShadow: '0 0 25px rgba(76, 175, 80, 0.2), 0 0 50px rgba(76, 175, 80, 0.1)',
           }}>
-            <img src="/images/dante-profile.jpg" alt="Dante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/images/dante-profile.jpg" alt="Dante" loading="eager" fetchPriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </motion.div>
 

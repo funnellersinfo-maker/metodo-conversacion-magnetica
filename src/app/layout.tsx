@@ -25,6 +25,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
+        <link rel="preload" href="/images/dante-profile.jpg" as="image" />
+        <link rel="preload" href="/images/call-bg.png" as="image" />
         <link rel="preload" href="/videos/dante-llamando.mp4" as="video" />
         <link rel="preload" href="/audio/call-audio.mp3" as="audio" />
       </head>
