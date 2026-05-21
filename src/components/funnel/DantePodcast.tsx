@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface DantePodcastProps {
   onComplete: () => void
@@ -135,65 +135,69 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
         }}
       />
 
-      {/* Subtle radial glow */}
+      {/* Subtle radial glow — RED for podcast */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 50% 50% at 50% 40%, rgba(76, 175, 80, 0.05) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 50% at 50% 40%, rgba(211, 47, 47, 0.06) 0%, transparent 70%)',
           zIndex: 1,
         }}
       />
 
-      {/* Audio element */}
-      <audio ref={audioRef} src="/audio/call-audio.mp3" preload="auto" />
+      {/* PODCAST AUDIO — archivo de podcast, NO call-audio */}
+      <audio ref={audioRef} src="/audio/podcast.aac" preload="auto" />
 
-      {/* Main player card */}
+      {/* Main player card — RED shadow theme */}
       <motion.div
         className="relative z-10 w-full max-w-sm mx-4 flex flex-col items-center rounded-2xl p-6 sm:p-8"
         style={{
           background: 'rgba(18, 18, 18, 0.85)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(76, 175, 80, 0.12)',
+          border: '1px solid rgba(211, 47, 47, 0.15)',
           boxShadow:
-            '0 0 40px rgba(76, 175, 80, 0.06), 0 0 80px rgba(76, 175, 80, 0.03), inset 0 1px 0 rgba(255,255,255,0.03)',
+            '0 0 40px rgba(211, 47, 47, 0.08), 0 0 80px rgba(211, 47, 47, 0.04), inset 0 1px 0 rgba(255,255,255,0.03)',
         }}
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Border glow pulse */}
+        {/* Border glow pulse — RED */}
         <motion.div
           className="absolute inset-0 rounded-2xl pointer-events-none"
           style={{
-            border: '1px solid rgba(76, 175, 80, 0.08)',
+            border: '1px solid rgba(211, 47, 47, 0.1)',
           }}
           animate={{
             boxShadow: [
-              '0 0 15px rgba(76, 175, 80, 0.03), inset 0 0 15px rgba(76, 175, 80, 0.01)',
-              '0 0 25px rgba(76, 175, 80, 0.08), inset 0 0 25px rgba(76, 175, 80, 0.02)',
-              '0 0 15px rgba(76, 175, 80, 0.03), inset 0 0 15px rgba(76, 175, 80, 0.01)',
+              '0 0 15px rgba(211, 47, 47, 0.04), inset 0 0 15px rgba(211, 47, 47, 0.01)',
+              '0 0 25px rgba(211, 47, 47, 0.1), inset 0 0 25px rgba(211, 47, 47, 0.02)',
+              '0 0 15px rgba(211, 47, 47, 0.04), inset 0 0 15px rgba(211, 47, 47, 0.01)',
             ],
           }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        {/* Cover image */}
+        {/* PODCAST COVER — portada dedicada del podcast */}
         <motion.div
-          className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl overflow-hidden mb-6"
+          className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl overflow-hidden mb-6 relative"
           style={{
             boxShadow:
-              '0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(76, 175, 80, 0.08)',
+              '0 8px 32px rgba(0,0,0,0.5), 0 0 30px rgba(211, 47, 47, 0.15)',
           }}
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4, duration: 0.6, type: 'spring', stiffness: 120 }}
         >
           <img
-            src="/images/dante-profile.jpg"
-            alt="Dante — Método Magnético"
+            src="/images/podcast-cover.png"
+            alt="Método Magnético — Podcast Cover"
             className="w-full h-full object-cover"
           />
+          {/* Red shadow overlay on cover */}
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(180deg, transparent 40%, rgba(211, 47, 47, 0.12) 100%)',
+          }} />
         </motion.div>
 
         {/* Title */}
@@ -215,16 +219,16 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
           MÉTODO MAGNÉTICO
         </motion.h1>
 
-        {/* Subtitle */}
+        {/* Subtitle — RED accent */}
         <motion.p
           className="text-center mb-8"
           style={{
             fontFamily: "'Cinzel', serif",
             fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)',
             fontWeight: 500,
-            color: '#4CAF50',
+            color: '#EF5350',
             letterSpacing: '0.08em',
-            textShadow: '0 0 10px rgba(76, 175, 80, 0.25)',
+            textShadow: '0 0 10px rgba(211, 47, 47, 0.3)',
           }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -233,7 +237,7 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
           Capítulo 1 — El Cortocircuito
         </motion.p>
 
-        {/* Progress bar */}
+        {/* Progress bar — RED */}
         <motion.div
           className="w-full mb-3"
           initial={{ opacity: 0 }}
@@ -252,10 +256,10 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
             <motion.div
               style={{
                 height: '100%',
-                background: 'linear-gradient(90deg, #1B5E20, #4CAF50)',
+                background: 'linear-gradient(90deg, #B71C1C, #EF5350)',
                 borderRadius: '2px',
                 width: `${progressPercent}%`,
-                boxShadow: '0 0 8px rgba(76, 175, 80, 0.35)',
+                boxShadow: '0 0 8px rgba(211, 47, 47, 0.4)',
               }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.3 }}
@@ -279,7 +283,7 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
           </div>
         </motion.div>
 
-        {/* Play/Pause button */}
+        {/* Play/Pause button — RED theme */}
         <motion.div
           className="flex items-center justify-center my-4"
           initial={{ opacity: 0, scale: 0.5 }}
@@ -291,13 +295,13 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
             className="relative cursor-pointer border-none bg-transparent p-0 flex items-center justify-center"
             aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
           >
-            {/* Glow ring behind button */}
+            {/* Glow ring behind button — RED */}
             <motion.div
               className="absolute rounded-full"
               style={{
                 width: '76px',
                 height: '76px',
-                background: 'radial-gradient(circle, rgba(76, 175, 80, 0.15) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(211, 47, 47, 0.15) 0%, transparent 70%)',
               }}
               animate={{
                 scale: isPlaying ? [1, 1.15, 1] : 1,
@@ -319,7 +323,7 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
                   width: '64px',
                   height: '64px',
                   background:
-                    'conic-gradient(from 0deg, transparent 0%, rgba(76, 175, 80, 0.2) 25%, transparent 50%)',
+                    'conic-gradient(from 0deg, transparent 0%, rgba(211, 47, 47, 0.2) 25%, transparent 50%)',
                 }}
                 initial={{ rotate: 0, opacity: 0.8 }}
                 animate={{ rotate: 360, opacity: 0 }}
@@ -327,44 +331,29 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
               />
             )}
 
-            {/* Main button circle */}
+            {/* Main button circle — RED gradient */}
             <motion.div
               className="relative rounded-full flex items-center justify-center"
               style={{
                 width: '64px',
                 height: '64px',
-                background: 'linear-gradient(135deg, #2E7D32, #4CAF50)',
+                background: 'linear-gradient(135deg, #B71C1C, #D32F2F)',
                 boxShadow:
-                  '0 0 20px rgba(76, 175, 80, 0.3), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+                  '0 0 20px rgba(211, 47, 47, 0.3), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
               }}
               whileHover={{
                 boxShadow:
-                  '0 0 30px rgba(76, 175, 80, 0.45), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+                  '0 0 30px rgba(211, 47, 47, 0.45), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
               }}
               whileTap={{ scale: 0.93 }}
             >
               {isPlaying ? (
-                /* Pause icon */
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="white"
-                  stroke="none"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none">
                   <rect x="6" y="4" width="4" height="16" rx="1" />
                   <rect x="14" y="4" width="4" height="16" rx="1" />
                 </svg>
               ) : (
-                /* Play icon */
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="white"
-                  stroke="none"
-                  style={{ marginLeft: '3px' }}
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none" style={{ marginLeft: '3px' }}>
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -389,7 +378,6 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
               {liked ? (
-                /* Filled heart — red */
                 <svg
                   width="28"
                   height="28"
@@ -403,7 +391,6 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
               ) : (
-                /* Unfilled heart with shimmer glow */
                 <div className="relative">
                   <motion.svg
                     width="28"
@@ -425,7 +412,6 @@ export default function DantePodcast({ onComplete }: DantePodcastProps) {
                   >
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </motion.svg>
-                  {/* Shimmer overlay for unfilled heart */}
                   <motion.div
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{

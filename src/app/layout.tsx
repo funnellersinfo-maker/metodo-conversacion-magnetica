@@ -27,8 +27,10 @@ export default function RootLayout({
         />
         <link rel="preload" href="/images/dante-profile.jpg" as="image" />
         <link rel="preload" href="/images/call-bg.png" as="image" />
+        <link rel="preload" href="/images/podcast-cover.png" as="image" />
         <link rel="preload" href="/videos/dante-llamando.mp4" as="video" />
         <link rel="preload" href="/audio/call-audio.mp3" as="audio" />
+        <link rel="preload" href="/audio/podcast.aac" as="audio" />
       </head>
       <body className="antialiased bg-black text-white overflow-hidden">
         {children}

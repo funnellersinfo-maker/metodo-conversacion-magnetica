@@ -18,12 +18,12 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
     return () => clearInterval(interval)
   }, [])
 
-  // Vibration and sound on mount
+  // Vibration and sound IMMEDIATELY on mount
   useEffect(() => {
-    // Vibrate
+    // Vibrate pattern — WhatsApp style
     try {
       if (navigator.vibrate) {
-        navigator.vibrate(150)
+        navigator.vibrate([100, 50, 100])
       }
     } catch {
       // Vibration not supported
@@ -31,7 +31,7 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
 
     // Play WhatsApp notification sound
     const audio = new Audio('/audio/whatsapp-notification.aac')
-    audio.volume = 0.7
+    audio.volume = 1.0
     audio.play().catch(() => {
       // Autoplay blocked — ignore
     })
@@ -75,7 +75,7 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
           className="mt-[15vh] flex flex-col items-center"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
         >
           <span
             style={{
@@ -107,17 +107,17 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
           </span>
         </motion.div>
 
-        {/* WhatsApp Notification card */}
+        {/* WhatsApp Notification card — ENTRA DE UNA */}
         <motion.div
           className="mt-8 w-[90%] max-w-sm"
-          initial={{ opacity: 0, y: -40, scale: 0.95 }}
+          initial={{ opacity: 0, y: -30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{
-            delay: 1,
-            duration: 0.6,
+            delay: 0.3,
+            duration: 0.4,
             type: 'spring',
-            stiffness: 200,
-            damping: 20,
+            stiffness: 250,
+            damping: 22,
           }}
           whileTap={{ scale: 0.97 }}
         >
@@ -193,7 +193,7 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  {/* ZYRA profile pic */}
+                  {/* ZYRA profile pic — SIN filtro grayscale */}
                   <div
                     style={{
                       width: 22,
@@ -210,7 +210,6 @@ export default function LockScreenNotification({ onOpen }: LockScreenNotificatio
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
-                        filter: 'grayscale(100%)',
                       }}
                     />
                   </div>

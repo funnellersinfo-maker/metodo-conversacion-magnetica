@@ -8,11 +8,11 @@ interface FakeQuizProps {
 }
 
 const QUESTION = {
-  question: '¿Cuánto tiempo llevas usando los mismos mensajes que ella ya detecta?',
+  question: 'Sé honesto... ¿En cuál de estos tres cementerios digitales está muriendo tu chat en este momento?',
   options: [
-    { letter: 'A', text: 'Semanas — sé que ya no funcionan' },
-    { letter: 'B', text: 'Meses — pero no sé qué más hacer' },
-    { letter: 'C', text: 'Apenas empecé, pero siento que se enfriaron' },
+    { letter: 'A', text: '"El chat iba increíble, pero de la nada se enfrió, me dejó en visto y ahora no sé qué escribir sin parecer desesperado."' },
+    { letter: 'B', text: '"Me responde, pero solo por cortesía. Si yo no invento un tema o hago una pregunta, el chat se muere ahí mismo."' },
+    { letter: 'C', text: '"Ni siquiera abre mi mensaje. Sé que mi notificación lleva días sepultada abajo de otros 50 tipos que le escriben lo mismo."' },
   ],
 }
 
