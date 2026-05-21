@@ -343,26 +343,12 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
         </motion.div>
       </div>
 
-      {/* === TELEPROMPTER — SOLUCIÓN DEFINITIVA v2 === */}
-      {/*
-        DIAGNÓSTICO FINAL: El texto se sale porque NINGÚN contenedor le está limitando
-        el ancho de verdad. La solución: position:absolute + left:0 + right:0 + padding
-        crea un contenedor que es EXACTAMENTE el ancho de la pantalla menos el padding.
-        El texto se renderiza como string plano (.join) para que el navegador haga wrap.
-      */}
-      <div style={{
-        position: 'absolute',
-        top: '30%',
-        left: 0,
-        right: 0,
-        boxSizing: 'border-box',
-        padding: '0 4vw',
-        zIndex: 10,
-        pointerEvents: 'none',
-      }}>
+      {/* === TELEPROMPTER — Fluido entre perfil y barra inferior === */}
+      <div className="relative z-10 flex-1 flex items-center px-[4vw] pointer-events-none">
         <div style={{
           maxWidth: '420px',
           margin: '0 auto',
+          width: '100%',
           boxSizing: 'border-box',
         }}>
           {activeCaption && visibleWords > 0 && (
@@ -378,12 +364,10 @@ export default function AudioCallScreen({ onComplete }: AudioCallScreenProps) {
               boxSizing: 'border-box',
               display: 'block',
               width: '100%',
-              // WRAPPING: estas 3 propiedades juntas garantizan wrap
               whiteSpace: 'pre-wrap',
               overflowWrap: 'anywhere',
               wordBreak: 'break-word',
             }}>
-              {/* Texto como UN SOLO STRING — el navegador ve espacios reales */}
               {visibleWords > 1 && (
                 <span style={{
                   color: 'rgba(76, 175, 80, 0.9)',
