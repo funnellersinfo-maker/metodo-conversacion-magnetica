@@ -311,3 +311,37 @@ Stage Summary:
 - Audio-reactive red glow that moves with the podcast audio
 - Old card-based design eliminated
 - No old/unused code found — clean codebase
+
+---
+Task ID: PODCAST-SPOTIFY-002
+Agent: Main Agent
+Task: Rewrite DantePodcast as Spotify-style player with more buttons, pausable, only heart tappable
+
+Work Log:
+- User complained current podcast didn't match screenshot and wasn't pausable
+- Analyzed user's screenshot with VLM again for exact design details
+- Completely rewrote DantePodcast.tsx as Spotify-style podcast player:
+  - TOP BAR: close X, "MÉTODO MAGNÉTICO | PODCAST" title, 3-dot menu
+  - COVER: Large (70vw) with audio-reactive RED GLOW (dual layer: primary + secondary ring)
+  - Text hierarchy: "MÉTODO MAGNÉTICO PRESENTA" → "LA AUDITORÍA" / "QUE NUNCA QUISISTE ESCUCHAR" / "DANTE — MÉTODO MAGNÉTICO"
+  - ACCESO RESTRINGIDO stamp on cover
+  - Waveform visualization (32 bars, audio-reactive)
+  - Progress bar with time display (Spotify style — thin, red when playing)
+  - CONTROL ROW: Shuffle (decorative) ← Previous (decorative) → PLAY/PAUSE (functional, white circle) → Next (decorative) → Repeat (decorative)
+  - BOTTOM ACTIONS: Heart (TAPPABLE - only interactive button) | Chapters (decorative) | Share (decorative) | Queue (decorative) | Volume (decorative)
+  - Play/Pause button: White circle with black icon, audio-reactive red glow shadow, fully pausable
+  - Only 2 interactive elements: Play/Pause + Heart
+  - All other buttons are visual/decorative only
+  - Audio: /audio/podcast.aac (correct podcast audio, NOT call audio)
+  - Cover: /images/podcast-cover.png
+- Removed all old code — clean rewrite
+- Lint: ✅ (0 errors, 1 pre-existing warning)
+- Dev server: ✅
+
+Stage Summary:
+- Spotify-style podcast player with proper controls
+- Pausable via play/pause button
+- Only heart and play/pause are tappable
+- Audio-reactive red glow behind cover
+- Waveform visualization reacts to audio in real-time
+- All decorative buttons add visual richness without functionality
