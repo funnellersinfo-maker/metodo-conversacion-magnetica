@@ -280,3 +280,34 @@ Stage Summary:
 - ✅ Images compressed 700KB → 90KB (87% reduction)
 - ✅ SEO complete with metadataBase, OG, twitter cards
 - ✅ favicon generated
+
+---
+Task ID: PODCAST-REWRITE-001
+Agent: Main Agent
+Task: Rewrite DantePodcast to match user's screenshot - eliminate old version, add audio-reactive red glow, proper layout
+
+Work Log:
+- Analyzed user's screenshot using VLM to understand exact design requirements
+- Identified current DantePodcast had card-based layout that didn't match the screenshot
+- Completely rewrote DantePodcast.tsx with:
+  - Full-screen dark background (removed card container)
+  - Large podcast cover image (clamp(220px, 65vw, 280px)) with BIG red glow behind it
+  - Audio-reactive red glow using Web Audio API (AnalyserNode) — glow pulses with bass frequencies
+  - Dual glow layers (primary + secondary pulsing ring) that scale and blur with audio intensity
+  - Proper text hierarchy matching screenshot: "MÉTODO MAGNÉTICO PRESENTA" → cover with "LA AUDITORÍA QUE NUNCA QUISISTE ESCUCHAR" + "ACCESO RESTRINGIDO" stamp → "LA AUDITORÍA" / "QUE NUNCA QUISISTE ESCUCHAR" → "DANTE — MÉTODO MAGNÉTICO"
+  - 40-bar waveform visualization that reacts to audio frequency data in real-time
+  - Red progress bar with time display
+  - Play/pause button with audio-reactive glow ring
+  - Heart/like button
+  - Correct podcast audio file: /audio/podcast.aac (NOT call audio)
+  - Proper podcast cover: /images/podcast-cover.png
+- Verified no old/unused podcast code references remain
+- Verified call-audio.mp3 is only used in AudioCallScreen (correct)
+- Lint: ✅ (0 errors, 1 pre-existing warning)
+- Dev server: ✅ (compiling normally)
+
+Stage Summary:
+- DantePodcast completely rewritten to match screenshot
+- Audio-reactive red glow that moves with the podcast audio
+- Old card-based design eliminated
+- No old/unused code found — clean codebase
