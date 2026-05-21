@@ -198,7 +198,7 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
                   letterSpacing: '0.04em',
                 }}
               >
-                Y SOLO LE TOMÓ <strong style={{ color: '#FFFFFF', fontWeight: 700 }}>7 SEGUNDOS.</strong>
+                Y SOLO LE TOMÓ <strong style={{ color: '#FFFFFF', fontWeight: 700 }}>7 SEGUNDOS BRO.</strong>
               </p>
             </motion.div>
 
@@ -223,7 +223,7 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
               </p>
             </motion.div>
 
-            {/* SUBE EL VOLUMEN — CopyFilms style */}
+            {/* SUBE EL VOLUMEN Y ACTIVA VIBRACIÓN — with animated volume icon */}
             <motion.div
               className="mt-5"
               initial={{ opacity: 0 }}
@@ -231,17 +231,46 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
               transition={{ duration: 1, delay: 1.7 }}
             >
               <div className="flex items-center justify-center gap-2">
-                {/* Red speaker icon */}
-                <svg
-                  width="18" height="18" viewBox="0 0 24 24"
-                  fill="none" stroke="#D32F2F" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{ flexShrink: 0 }}
-                >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                </svg>
+                {/* Animated red speaker icon */}
+                <div className="relative" style={{ width: 24, height: 24, flexShrink: 0 }}>
+                  {/* Pulsing glow behind icon */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(211,47,47,0.3) 0%, transparent 70%)' }}
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.8, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  {/* Sound wave rings — animated outward */}
+                  <motion.div
+                    className="absolute"
+                    style={{ left: 14, top: 4, width: 14, height: 16 }}
+                    animate={{ opacity: [0, 1, 0], scale: [0.7, 1.1, 0.7] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0 }}
+                  >
+                    <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                  </motion.div>
+                  <motion.div
+                    className="absolute"
+                    style={{ left: 14, top: 2, width: 16, height: 20 }}
+                    animate={{ opacity: [0, 0.7, 0], scale: [0.6, 1.15, 0.6] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                  >
+                    <svg width="16" height="20" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                    </svg>
+                  </motion.div>
+                  {/* Main speaker icon */}
+                  <svg
+                    width="20" height="20" viewBox="0 0 24 24"
+                    fill="none" stroke="#D32F2F" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    style={{ position: 'relative', zIndex: 1 }}
+                  >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  </svg>
+                </div>
                 {/* Text */}
                 <span
                   style={{
@@ -255,7 +284,7 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
                     lineHeight: 1,
                   }}
                 >
-                  SUBE EL VOLUMEN
+                  SUBE EL VOLUMEN Y ACTIVA VIBRACIÓN
                 </span>
               </div>
             </motion.div>
@@ -263,6 +292,23 @@ export default function CinematicLanding({ onComplete }: CinematicLandingProps) 
 
           {/* CTA BUTTON — in document flow, no overlap possible */}
           <div className="relative z-10 px-6 pb-8 pt-4">
+            {/* Small text above the red button */}
+            <motion.p
+              className="text-center mb-3"
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 'clamp(0.55rem, 1.6vw, 0.68rem)',
+                fontWeight: 400,
+                color: 'rgba(255, 255, 255, 0.4)',
+                letterSpacing: '0.06em',
+                lineHeight: 1.4,
+              }}
+              initial={{ opacity: 0 }}
+              animate={showContent ? { opacity: 1 } : {}}
+              transition={{ duration: 0.8, delay: 1.9 }}
+            >
+              PREPÁRATE PARA VIVIR UNA EXPERIENCIA COMO NUNCA LA HAS VIVIDO
+            </motion.p>
             <motion.button
               onClick={handleStart}
               className="relative w-full cursor-pointer border-none flex items-center justify-center gap-3 overflow-hidden"

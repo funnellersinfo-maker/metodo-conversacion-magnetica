@@ -345,3 +345,34 @@ Stage Summary:
 - Audio-reactive red glow behind cover
 - Waveform visualization reacts to audio in real-time
 - All decorative buttons add visual richness without functionality
+
+---
+Task ID: LANDING-FIX-003
+Agent: Main Agent
+Task: Fix CinematicLanding to match user's screenshot - add missing text, animated volume icon, "BRO"
+
+Work Log:
+- User uploaded new screenshot showing the INITIAL screen (CinematicLanding), not the podcast
+- Identified 4 missing elements vs screenshot:
+  1. "7 SEGUNDOS." → should be "7 SEGUNDOS BRO." (missing "BRO")
+  2. "SUBE EL VOLUMEN" → should be "SUBE EL VOLUMEN Y ACTIVA VIBRACIÓN"
+  3. Volume icon was static → needed animation (pulsing glow + sound wave rings moving outward)
+  4. Missing text above red button: "PREPÁRATE PARA VIVIR UNA EXPERIENCIA COMO NUNCA LA HAS VIVIDO"
+- Fixed all 4 issues in CinematicLanding.tsx:
+  - Added "BRO." after "7 SEGUNDOS"
+  - Changed volume text to "SUBE EL VOLUMEN Y ACTIVA VIBRACIÓN"
+  - Replaced static speaker icon with animated version:
+    - Pulsing red glow behind the icon (1.5s loop)
+    - Inner sound wave arc animating opacity + scale (1.2s loop)
+    - Outer sound wave arc with staggered delay (0.4s offset)
+    - Main speaker body stays static for readability
+  - Added "PREPÁRATE PARA VIVIR UNA EXPERIENCIA COMO NUNCA LA HAS VIVIDO" text above the red CTA button
+- Lint: ✅ (0 errors, 1 pre-existing warning)
+- Dev server: ✅
+
+Stage Summary:
+- CinematicLanding now matches user's screenshot
+- Volume icon has visible animation (pulsing + sound waves)
+- "BRO" added after "7 SEGUNDOS"
+- "Y ACTIVA VIBRACIÓN" added to volume prompt
+- Small text above red button added
